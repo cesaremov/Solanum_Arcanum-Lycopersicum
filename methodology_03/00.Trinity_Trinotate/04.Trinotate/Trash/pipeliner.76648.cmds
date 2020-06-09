@@ -1,0 +1,1 @@
+/home/CINVESTAV/hpc-cesare-ovando/programi/transdecoder/versions/TransDecoder-TransDecoder-v5.3.0/util/compute_base_probs.pl ../01.Trinity/Trinity_concatRaw/Trinity.fasta 0 > /home/CINVESTAV/hpc-cesare-ovando/Work/Slycopersicum/02.Assembly_De_Novo/00.Trinity_Trinotate/04.Trinotate/Trinity.fasta.transdecoder_dir/base_freqs.dat

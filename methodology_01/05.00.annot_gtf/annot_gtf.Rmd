@@ -1,0 +1,199 @@
+---
+title: "gr_assignments"
+author: "Cesaré Ovando-Vázquez"
+date: "29/1/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(rtracklayer)
+library(pbapply)
+
+rm(list = ls())
+gc()
+
+# Paths
+# inPath <- "../05.featureCounts"
+outPath <- "annot_gtf"
+
+# Make paths
+dir.create(outPath, showWarnings = FALSE)
+
+# Patterns
+# inPatt <- ".tab$"
+# outPatt <- inPatt
+```
+
+
+## Get genomic regions
+
+```{r}
+# Load gr annotation 
+gr <- import.gff3("../Genome/ITAG3.2_gene_models.gff3")
+```
+
+Defining genes GR
+
+```{r}
+# Get genes
+gene <- gr[gr$type == "gene"]
+names(gene) <- gene$ID
+# gene <- gene[c("type", "transcript_id", "gene_id", "gene_name")]
+# mcols(gene)$type <- "exon" 
+```
+
+Defining mRNA GR
+
+```{r}
+# Get mrna
+mrna <- gr[gr$type == "mRNA"]
+```
+
+Get mRNA and gene mapping.
+
+```{r}
+# mRNA gene map
+mrna_gene_tab <- mcols(mrna)[, c("ID", "Parent")]
+mrna_gene_tab$Parent <- unlist(mrna_gene_tab$Parent)
+
+# Add intergenic info
+mrna_gene_tab <- rbind(mrna_gene_tab, data.frame(ID = levels(seqnames(gene)), 
+                                                 Parent = levels(seqnames(gene)), 
+                                                 stringsAsFactors = FALSE))
+
+# Set row.names
+row.names(mrna_gene_tab) <- mrna_gene_tab$ID
+```
+
+Get exons and cds.
+
+```{r}
+# Set exon
+exon <- gr[gr$type == "exon"]
+mcols(exon) <- mcols(exon)[c("type", "Parent")]
+exon$Parent <- unlist(exon$Parent)
+
+# Set cds
+cds <- gr[gr$type == "CDS"]
+mcols(cds) <- mcols(cds)[c("type", "Parent")]
+cds$Parent <- unlist(cds$Parent)
+```
+
+
+Get intergenic regions.
+
+```{r}
+# Read genome.fasta summary (hisat2-inpect)
+chrLen <- read.table(file = "../Genome/genome.sumary", sep = "\t") 
+colnames(chrLen) <- c("Seq", "Chr", "len")
+row.names(chrLen) <- chrLen$Chr
+
+# Generate chr Genomic Ranges
+chr <- GRanges(seqnames = levels(seqnames(gene)), ranges = IRanges(start = 1, end = chrLen[levels(seqnames(gene)),]$len), 
+               strand = "*")
+
+# Intersect genes with chr to get genetic regions 
+geneIntersect <- intersect(gene, chr, ignore.strand = TRUE)
+# seqnames(geneIntersect) <- seqnames(chr)
+
+# Set difference between chr and genetic regions
+intergenic <- setdiff(chr, geneIntersect, ignore.strand = FALSE)
+strand(intergenic) <- "+"
+
+# Check numbers
+sum(width(chr))
+sum(width(intergenic)) + sum(width(geneReduce))
+
+# Set intergenic
+mcols(intergenic) <- data.frame(type = "intergenic", 
+                                Parent = as.character(seqnames(intergenic)), 
+                                stringsAsFactors = FALSE)
+```
+
+
+Split exons by mRNA. Then, get set-difference between gene and exons by mRNA.
+
+```{r}
+# 
+# intronSetDiff <- sort(setdiff(gene, exon, ignore.strand = FALSE))
+# mbo <- mergeByOverlaps(query = intronSetDiff, subject = mrna, type = "within")
+# 
+# mbo$intron
+
+
+# Split exons by mRNA
+exonsBymRNA <- split(exon, f = unlist(exon$Parent)) 
+# exonsBymRNA <- exonsBymRNA[seq(100)]
+
+# Split in i rounds
+exonsBymRNASplit <- split(exonsBymRNA, f = rep_len(seq(32), length(exonsBymRNA))) 
+
+# Get introns
+# cl <- makeCluster(8)
+# intron <- list()
+# for (i in seq(length(exonsBymRNASplit))) {
+
+# print(paste0(i, " round"))
+
+# Get exonsBymRNA_ith
+# exonsBymRNA_i <- exonsBymRNASplit[[i]]
+intronList <- pblapply(exonsBymRNASplit, function(exonsBymRNA_i) {
+  
+  gc()
+  
+  # Get intron round ith
+  intron_i <- lapply(names(exonsBymRNA_i), function(x, exonsBymRNA, gene, mrna_gene_tab) {
+    intron <- unlist(psetdiff(gene[mrna_gene_tab[x, "Parent"]], GRangesList(exonsBymRNA[[x]])))
+    mcols(intron) <- data.frame(type = "intron", Parent = x, stringsAsFactors = FALSE)
+    return(intron)
+  }, exonsBymRNA, gene, mrna_gene_tab)
+  
+  return(do.call(c, intron_i))
+}, cl = 8)
+
+# Set intron ith to intron list
+# intron[[i]] <- intron_i
+# }
+intron <- (Reduce(x = intronList, c))
+# stopCluster(cl)
+```
+
+Concat exons, cds and introns.
+
+```{r}
+# Concat genomic regions
+eciGR <- sort(c(exon, cds, intron, intergenic))
+
+# Set mcols
+mcols(eciGR) <- data.frame(type = as.character(eciGR$type), 
+                           transcript_id = mrna_gene_tab[eciGR$Parent,]$ID,
+                           gene_id = mrna_gene_tab[eciGR$Parent,]$Parent, 
+                           gene_name = sub("gene:", "", mrna_gene_tab[eciGR$Parent,]$Parent), 
+                           stringsAsFactors = FALSE)
+eciGR$type <- as.character(eciGR$type)
+```
+
+
+## Export annotation gtf 
+
+Exporting annotation gtf file to be used by featureCounts.
+
+Split by type and save it with proper file name.
+
+```{r}
+# Split
+eciGRtype <- split(eciGR, f = eciGR$type)
+
+# Export tracks
+lapply(names(eciGRtype), function(x, eciGRtype) {
+  gr <- eciGRtype[[x]]
+  gr$type <- "exon"
+  export.gff3(object = gr, con = paste0(outPath, "/", x, ".gff3"))
+  # system(paste0("gffread ", outPath, "/", x, ".gff3 -T -o ", outPath, "/", x, ".gtf"))
+}, eciGRtype)
+
+# export.gff3(object = eciGR, con = paste0(outPath, "/gr.gff3"))
+```
+
+

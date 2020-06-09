@@ -1,0 +1,8 @@
+##gff-version2
+##source-version RNAmmer-1.2
+##date 2019-01-22
+##Type DNA
+# seqname           source                      feature     start      end   score   +/-  frame  attribute
+# ---------------------------------------------------------------------------------------------------------
+transcriptSuperScaffold	RNAmmer-1.2	rRNA	2151079	2151193	52.5	-	.	8s_rRNA	
+# ---------------------------------------------------------------------------------------------------------

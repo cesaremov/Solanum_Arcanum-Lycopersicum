@@ -1,0 +1,13 @@
+{
+	"n_targets": 176548,
+	"n_bootstraps": 1000,
+	"n_processed": 22743577,
+	"n_pseudoaligned": 19055826,
+	"n_unique": 4784615,
+	"p_pseudoaligned": 83.8,
+	"p_unique": 21.0,
+	"kallisto_version": "0.44.0",
+	"index_version": 10,
+	"start_time": "Mon Oct 15 10:33:28 2018",
+	"call": "kallisto quant -i ../00.Trinity_Trinotate/01.Trinity/Trinity_concatRaw/Trinity_all -b 1000 -t 32 -o kallisto/Arcanum_T8h_P2 ../Raw_rename/Arcanum_T8h_P2_1.fastq.gz ../Raw_rename/Arcanum_T8h_P2_2.fastq.gz"
+}

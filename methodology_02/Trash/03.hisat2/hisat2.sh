@@ -1,0 +1,1 @@
+../../00.Lyc_Genome/04.hisat2/hisat2.sh

@@ -1,0 +1,1 @@
+/home/CINVESTAV/hpc-cesare-ovando/Work/Slycopersicum/00.Lyc_Genome/00.AnotateGenome/01.Trinotate/conf.txt

@@ -1,0 +1,12 @@
+PASS	Basic Statistics	Arcanum_T0h_P1_2.fastq.gz
+PASS	Per base sequence quality	Arcanum_T0h_P1_2.fastq.gz
+WARN	Per tile sequence quality	Arcanum_T0h_P1_2.fastq.gz
+PASS	Per sequence quality scores	Arcanum_T0h_P1_2.fastq.gz
+FAIL	Per base sequence content	Arcanum_T0h_P1_2.fastq.gz
+WARN	Per sequence GC content	Arcanum_T0h_P1_2.fastq.gz
+PASS	Per base N content	Arcanum_T0h_P1_2.fastq.gz
+PASS	Sequence Length Distribution	Arcanum_T0h_P1_2.fastq.gz
+WARN	Sequence Duplication Levels	Arcanum_T0h_P1_2.fastq.gz
+PASS	Overrepresented sequences	Arcanum_T0h_P1_2.fastq.gz
+PASS	Adapter Content	Arcanum_T0h_P1_2.fastq.gz
+FAIL	Kmer Content	Arcanum_T0h_P1_2.fastq.gz

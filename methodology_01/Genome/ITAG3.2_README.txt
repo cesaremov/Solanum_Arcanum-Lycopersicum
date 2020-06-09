@@ -1,0 +1,54 @@
+ITAG3.0 Tomato Genome Annotation Release
+
+Contents:
+	1. Introduction
+	2. Change log
+	3. Files in this release
+
+== 1. Introduction ==
+
+ITAG3.2 release of new annotation on the tomato genome assembly SL3.0. This release includes 35,768 gene models.
+
+Release Date: June 15, 2017
+
+== 2. Change log ==
+
+Following are the changes in ITAG3.2 compared to ITAG2.40.
+Number of ITAG2.4 genes preserved    =	 30,868
+Number of dropped genes		     =	  3,857
+Number of updated genes		     =	 20,766
+Number of novel genes		     =	  4,900
+
+== 3. Files in this release ==
+*	ITAG3.2_CDS.fasta
+	fasta-format sequence file of CDS sequences.
+
+*	ITAG3.2_cDNA.fasta
+	fasta-format sequence file of cDNA sequences.
+
+*	ITAG3.2_gene_models.gff
+	GFF version 3 file containing gene models in this release. 
+
+*	ITAG3.2_proteins.fasta
+	fasta-format sequence file of protein sequences.
+
+*	ITAG3.2_REPET_repeats_agressive.gff
+	GFF version 3 file containing repetitive regions. This contains repeats identified by REPET
+	pipeline and contains comprehensive repeat annotation.
+
+*	ITAG3.2_RepeatModeler_repeats_light.gff
+	GFF version 3 file containing repetitive regions. ITAG3.0 protein-coding gene models were
+	identified after masking genome with this file. This contains repeats identified by RepeatMasker
+	using RepeatModeler generated custom repeat library. Known proteins were identified in the repeat
+	library to improve chances of protein-coding gene identification.
+
+*       ITAG3.2_RepeatModeler_repeats_light.classified
+	Tabular file with repeat classification
+
+*       ITAG3.2_proteins_interproscan.tsv
+	Interproscan results generated with interproscan-5.22-61
+		
+*       ITAG3.2_proteins_go.tsv
+	Tabular separated value (TSV) file of the GO annotations for each ITAG3.2 gene model. This file was created from ITAG3.2_proteins_interproscan.tsv
+
+	

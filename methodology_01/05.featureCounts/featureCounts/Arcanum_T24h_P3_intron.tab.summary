@@ -1,0 +1,13 @@
+Status	../04.hisat2/hisat2/Arcanum_T24h_P3.bam
+Assigned	460879
+Unassigned_Unmapped	4227870
+Unassigned_MappingQuality	0
+Unassigned_Chimera	0
+Unassigned_FragmentLength	0
+Unassigned_Duplicate	0
+Unassigned_MultiMapping	0
+Unassigned_Secondary	0
+Unassigned_Nonjunction	0
+Unassigned_NoFeatures	12059446
+Unassigned_Overlapping_Length	1072843
+Unassigned_Ambiguity	9908

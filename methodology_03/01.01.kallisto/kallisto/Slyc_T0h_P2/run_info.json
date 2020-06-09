@@ -1,0 +1,13 @@
+{
+	"n_targets": 176548,
+	"n_bootstraps": 1000,
+	"n_processed": 22362185,
+	"n_pseudoaligned": 19065381,
+	"n_unique": 4326331,
+	"p_pseudoaligned": 85.3,
+	"p_unique": 19.3,
+	"kallisto_version": "0.44.0",
+	"index_version": 10,
+	"start_time": "Mon Oct 15 10:48:50 2018",
+	"call": "kallisto quant -i ../00.Trinity_Trinotate/01.Trinity/Trinity_concatRaw/Trinity_all -b 1000 -t 32 -o kallisto/Slyc_T0h_P2 ../Raw_rename/Slyc_T0h_P2_1.fastq.gz ../Raw_rename/Slyc_T0h_P2_2.fastq.gz"
+}

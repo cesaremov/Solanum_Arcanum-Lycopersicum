@@ -1,0 +1,49 @@
+perl: warning: Setting locale failed.
+perl: warning: Please check that your locale settings:
+	LANGUAGE = (unset),
+	LC_ALL = (unset),
+	LC_CTYPE = "UTF-8",
+	LANG = "en_US.UTF-8"
+    are supported and installed on your system.
+perl: warning: Falling back to a fallback locale ("en_US.UTF-8").
+Started analysis of Slyc_T24h_P1_1.fastq.gz
+Approx 5% complete for Slyc_T24h_P1_1.fastq.gz
+Approx 10% complete for Slyc_T24h_P1_1.fastq.gz
+Approx 15% complete for Slyc_T24h_P1_1.fastq.gz
+Approx 20% complete for Slyc_T24h_P1_1.fastq.gz
+Approx 25% complete for Slyc_T24h_P1_1.fastq.gz
+Approx 30% complete for Slyc_T24h_P1_1.fastq.gz
+Approx 35% complete for Slyc_T24h_P1_1.fastq.gz
+Approx 40% complete for Slyc_T24h_P1_1.fastq.gz
+Approx 45% complete for Slyc_T24h_P1_1.fastq.gz
+Approx 50% complete for Slyc_T24h_P1_1.fastq.gz
+Approx 55% complete for Slyc_T24h_P1_1.fastq.gz
+Approx 60% complete for Slyc_T24h_P1_1.fastq.gz
+Approx 65% complete for Slyc_T24h_P1_1.fastq.gz
+Approx 70% complete for Slyc_T24h_P1_1.fastq.gz
+Approx 75% complete for Slyc_T24h_P1_1.fastq.gz
+Approx 80% complete for Slyc_T24h_P1_1.fastq.gz
+Approx 85% complete for Slyc_T24h_P1_1.fastq.gz
+Approx 90% complete for Slyc_T24h_P1_1.fastq.gz
+Approx 95% complete for Slyc_T24h_P1_1.fastq.gz
+Analysis complete for Slyc_T24h_P1_1.fastq.gz
+
++---------------------------------------------------------------------+
+|                        JOB INFORMATION                              |
++---------------------------------------------------------------------+
+|
+|  Date      : Tue Feb 20 14:31:22 CST 2018
+|  Hostname  : node36
+|  Job ID    : 148837.mazorka
+|  Username  : covando
+|  Group     : covando
+|  Job Name  : FastQC
+|  Session   : 20489
+|  Limits    : mem=20gb,neednodes=1:ppn=1,nodes=1:ppn=1,vmem=20gb,walltime=08:00:00
+|  Resources : cput=00:04:16,energy_used=0,mem=194880kb,vmem=2597460kb,walltime=00:05:16
+|  Queue     : default
+|  Exit code : 0
+|
+[---------------------------------------------------------------------]
+
+

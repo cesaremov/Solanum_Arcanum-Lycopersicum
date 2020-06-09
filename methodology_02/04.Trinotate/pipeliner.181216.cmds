@@ -1,0 +1,1 @@
+/home/CINVESTAV/hpc-cesare-ovando/programi/transdecoder/versions/TransDecoder-TransDecoder-v5.3.0/util/compute_base_probs.pl trx.fa 0 > /home/CINVESTAV/hpc-cesare-ovando/Work/Slycopersicum/01.Lyc_Genome_UnMap_Assembly/03.Trinotate/trx.fa.transdecoder_dir/base_freqs.dat

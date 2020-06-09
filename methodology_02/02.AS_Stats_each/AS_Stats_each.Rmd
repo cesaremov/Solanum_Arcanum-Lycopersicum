@@ -1,0 +1,145 @@
+---
+title: "Aspli statistics"
+author: "Cesaré Ovando-Vázquez"
+date: "September 23, 2018"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(GenomicFeatures)
+library(rtracklayer)
+library(ASpli)
+
+rm(list = ls())
+gc()
+
+# Paths
+inPath <- "../04.StringTie/"
+outPath <- "AS_Stats_each"
+
+dir.create(outPath)
+```
+
+First, we list StringTie gtfs.
+
+```{r}
+# List gtf files
+gtfFiles <- list.files(path = inPath, pattern = "gtf", full.names = TRUE, recursive = TRUE)
+```
+
+
+We load StringTie gtfs, and clean them if un-stranded transcripts
+
+```{r}
+# Load StringTie gtf
+gtfList <- lapply(gtfFiles, function(x) {
+ gtf <- import(x) 
+ return(gtf)
+})
+names(gtfList) <- sub(".gtf", "", basename(gtfFiles))
+# gtf <- import("../11.StringTie_merge/StringTie_merge/all.gtf")
+
+# What do we have?
+lapply(gtfList, function(x) table(strand(x)))
+
+# Clean gtf, only stranded transcripts
+gtfCleanList <- lapply(gtfList, function(x) x[strand(x) != "*"])
+names(gtfCleanList) <- names(gtfList)
+# gtfClean <- gtf[strand(gtf) != "*"]
+# mcols(gtfClean) <- mcols(gtfClean)[, !grepl("phase|score|re_gene|exon", colnames(mcols(gtfClean)))]
+
+# Save clen gtf
+lapply(names(gtfCleanList), function(x, gtfCleanList, outPath) {
+  gtfClean <- gtfCleanList[[x]]
+  gtfCleanFile <- paste0(outPath, "/", x, "_clean.gtf")
+  export(object = gtfClean, con = gtfCleanFile)
+  return(paste0("Exporting ", x))
+}, gtfCleanList, outPath)
+# export(object = gtfClean, con = gtfCleanFile, format = "gtf")
+```
+
+
+We use ASplice to get AS statistics
+
+```{r}
+# Generate TxDB 
+gtfCleanFiles <- list.files(path = outPath, pattern = "_clean.gtf", recursive = TRUE, full.names = TRUE)
+txDBList <- lapply(gtfCleanFiles, function(x) {
+  txDB <-makeTxDbFromGFF(x)
+  return(txDB)
+})
+names(txDBList) <- sub("_clean.gtf", "", basename(gtfCleanFiles))
+# txDB <-makeTxDbFromGFF(gtfCleanFile)
+
+# Extract genomic features
+featuresList <- lapply(txDBList, function(x) {
+  features <- binGenome(x)
+  return(features)
+})
+# features <- binGenome(txDB)
+```
+
+We plot the AS detected event from StringTie gtf result
+
+```{r}
+# Scan SApli log file
+logFile <- scan(file = "ASpli_binFeatures.log", what = "character", sep = "\n")
+
+# Clean
+logFile <- logFile[grepl(" \t [A-Z]", logFile, ignore.case = TRUE)]
+logFile <- gsub("\t", "", logFile)
+# logFile <- logFile[!grepl()]
+
+#
+asTab <- data.frame(type = sub(" bins =.+", "", logFile), n = as.numeric(gsub(".+= |\\(.+", "", logFile),
+           stringsAsFactors = FALSE))
+
+barplot(asTab$n, names.arg = asTab$type, border = FALSE, col = rgb(1, 0, 0, 0.75), las = 1)
+grid()
+```
+
+
+
+<!-- ## Differential usage -->
+
+<!-- Now, we use the bam files to get differential usage, from ASplice package -->
+<!-- ```{r} -->
+<!-- # Bam files -->
+<!-- bams <- list.files(path = "../04.hisat2/", pattern = "bam$", recursive = TRUE, full.names = TRUE) -->
+<!-- ``` -->
+
+<!-- Load bams into target data.frame -->
+<!-- ```{r} -->
+<!-- # -->
+<!-- targets <- data.frame(row.names = paste0("Sample", seq(length(bams))), -->
+<!--   bam = bams, -->
+<!--   f1 = gsub("_.+", "", basename(bams)), -->
+<!--   stringsAsFactors = FALSE) -->
+
+<!-- bamsAS <- loadBAM(targets) -->
+
+<!-- ``` -->
+
+
+
+<!-- ```{r} -->
+<!-- # -->
+<!-- counts <- readCounts( features, bamsAS, targets, readLength = 100, -->
+<!-- maxISize = 5000 ) -->
+
+
+
+<!-- ``` -->
+
+<!-- ```{r} -->
+<!-- # -->
+<!-- plotGenomicRegions( features,'GENE10:E002', genomeTxDb, targets ) -->
+<!-- ``` -->
+
+
+
+

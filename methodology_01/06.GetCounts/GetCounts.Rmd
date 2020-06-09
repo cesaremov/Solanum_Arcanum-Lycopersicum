@@ -1,0 +1,291 @@
+---
+title: "GetCounts"
+author: "Cesaré Ovando-Vázquez"
+date: '`r format(Sys.Date(), "%d/%B/%Y")`'
+output:
+  html_document:
+    theme: cerulean
+    highlight: haddock
+editor_options: 
+  chunk_output_type: inline
+---
+
+## Setup
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(reshape2)
+library(factoextra)
+library(RColorBrewer)
+library(scatterplot3d)
+
+rm(list = ls())
+gc()
+
+# Paths
+inPath <- "../05.featureCounts"
+outPath <- "GetCounts"
+
+# Make paths
+dir.create(outPath, showWarnings = FALSE)
+
+# Patterns
+inPatt <- ".tab$"
+outPatt <- inPatt
+```
+
+
+## List Files
+
+Get featureCounts results (.tab files) and adding library information.
+
+```{r}
+# List featureCounts results
+print("List Files")
+fcFiles <- list.files(path = inPath, pattern = inPatt, full.names = TRUE, recursive = TRUE)
+
+# Concat files
+countList <- list()
+for (fcFile in fcFiles) {
+  
+  print(fcFile)
+  
+  # Load fcFile
+  tab <- read.table(fcFile, header = TRUE, sep = "\t", quote = "")
+  # head(tab)
+  
+  # Re-name columns
+  colnames(tab) <- sub("^.+\\.bam$", "counts", colnames(tab))
+  
+  # Add library name
+  tab$lib <- gsub("^.+\\/+|\\.tab", "", fcFile)
+  
+  # Add type
+  tab$type <- sub("^.+\\_", "", tab$lib)
+  
+  # Correct gene name
+  tab$Geneid <- sub("^.*gene\\:", "", tab$Geneid)
+  
+  
+  # Add tab to list
+  countList[[fcFile]] <- tab
+}
+```
+
+Get count table.
+```{r}
+# Concatenate
+countTab <- do.call(rbind, countList)
+```
+
+## Summary countTab
+
+Get total counts per library.
+```{r}
+# Total library counts per gr type
+
+countTabType <- split(countTab, f = countTab$type)
+
+totalCountsLibType <- lapply(countTabType, function(countTab) {
+  # totalCounts <- sum(countTab$counts)/1e6
+  totalCountsLib <- aggregate(countTab$counts, by = list(countTab$lib), sum) 
+  row.names(totalCountsLib) <- sub("\\_[eiC].+", "", totalCountsLib$Group.1)
+  return(totalCountsLib)
+})
+```
+
+## Fragments assigned to genes (pre-mRNA)
+
+```{r}
+# Get mapUnmap table
+mapUnmapTab <- read.table("../04.mapping_stats/mapping_stats/mapUnmsp.tab", sep = "\t", header = TRUE)
+row.names(mapUnmapTab) <- mapUnmapTab$lib
+
+# Fix and set libs names
+mapUnmapTab$lib <- sub("Arcanum", "S._arc", mapUnmapTab$lib)
+mapUnmapTab$lib <- sub("Slyc", "S._lyc", mapUnmapTab$lib)
+mapUnmapTab$lib <- sub("T", "", mapUnmapTab$lib)
+
+head(mapUnmapTab)
+```
+
+
+Get table with 3 types of mapped fragment per each genomic region type (exon, CDS and intron): 
+
+1) Unmap
+2) No assigned to gr type
+3) Assigne to gr type
+
+```{r}
+# Type of fragments table, Number #
+
+# lapply(totalCountsLibType, function(totalCountsLib, mapUnmapTab) {
+typeFragMat <- data.frame(lib = mapUnmapTab$lib, 
+                          Unmapped = mapUnmapTab$UnMap, 
+                          Exon = totalCountsLibType[["exon"]][row.names(mapUnmapTab), "x"],
+                          Intron = totalCountsLibType[["intron"]][row.names(mapUnmapTab), "x"],
+                          Intergenic = totalCountsLibType[["intergenic"]][row.names(mapUnmapTab), "x"])
+typeFragMat$Unassigned <- mapUnmapTab$Map - (typeFragMat$Exon + typeFragMat$Intron + typeFragMat$Intergenic)
+
+# })
+# Melt table
+typeFragTab <- melt(typeFragMat)
+typeFragTab$variable <- factor(typeFragTab$variable, levels = c("Unmapped", "Unassigned", 
+                                                                "Intergenic", "Intron", "Exon"))
+
+# Type of fragments table, Percentage %
+typeFragPerMat <- data.frame(lib = typeFragMat$lib, 
+                             t(apply(typeFragMat[, setdiff(colnames(typeFragMat), "lib")], 1, function(x) x/sum(x)*100)))
+typeFragPerTab <- melt(typeFragPerMat)
+typeFragPerTab$variable <- factor(typeFragPerTab$variable, levels = c("Unmapped", "Unassigned",
+                                                                      "Intergenic", "Intron", "Exon"))
+```
+
+Plot number and proportion of fragments
+
+```{r}
+# Plot type number of fragment table
+gTypeFrag <- ggplot(typeFragTab, aes(x = lib, y = value, fill = variable)) +
+  geom_bar(stat = "identity") + theme(axis.text.x = element_text(angle = 90, hjust = 1)) + 
+  scale_fill_manual(values = c("gray", "lemonchiffon3", "lemonchiffon1", 
+                               "skyblue", "dodgerblue1"), name = "") + 
+  ylab("# fragments") + #ggtitle("# Assigned fragments") +
+  xlab("") 
+print(gTypeFrag)
+
+# Plot type percentage fragment table
+gTypePerFrag <- ggplot(typeFragPerTab, aes(x = lib, y = value, fill = variable)) +
+  geom_bar(stat = "identity") + theme(axis.text.x = element_text(angle = 90, hjust = 1)) + 
+  scale_fill_manual(values = c("gray", "lemonchiffon3", "lemonchiffon1", 
+                               "skyblue", "dodgerblue1"), name = "") + 
+  ylab("% fragments") + #ggtitle("% Assigned fragments") +
+  xlab("") 
+print(gTypePerFrag)
+
+# Get fragments mapped AND assigned to regions proportion
+mapMat <- data.frame(lib = typeFragMat$lib, 
+                     t(apply(typeFragMat[, c("Intergenic", "Intron", "Exon")], 1, function(x) x/sum(x)*100)))
+mapTab <- melt(mapMat)  
+
+# Plot fragments mapped AND assigned to exons proportion
+gTypePerFrag <- ggplot(mapTab, aes(x = lib, y = value, fill = variable)) +
+  geom_bar(stat = "identity") + theme(axis.text.x = element_text(angle = 90, hjust = 1)) + 
+  scale_fill_manual(values = c("lemonchiffon1", "skyblue", "dodgerblue1"), name = "") + 
+  ylab("% fragments") + #ggtitle("% Assigned fragments") +
+  xlab("") 
+print(gTypePerFrag)
+```
+
+
+## Get count matrix
+
+We get and save count matrix to be used by edgeR. Then, we CPM-normalize libraries.
+
+```{r}
+# Get counts per gene (exons) id and library
+countTab$lib <- sub("\\_[eiC].+", "", countTab$lib)
+countTab <- countTab[countTab$type == "exon",]
+totalCountsGeneLib <- aggregate(counts ~ lib + Geneid, data = countTab, sum) 
+
+# Get matrix
+countMat <- acast(data = totalCountsGeneLib, formula = Geneid ~ lib, fun.aggregate = sum, value.var = "counts")
+row.names(countMat) <- sub("^.*gene\\:", "", row.names(countMat))
+colnames(countMat) <- sub("Arcanum", "S._arc", colnames(countMat))
+colnames(countMat) <- sub("Slyc", "S._lyc", colnames(countMat))
+colnames(countMat) <- sub("T", "", colnames(countMat))
+
+# Write counts table
+countMat2save <- data.frame(GeneID = row.names(countMat), round(countMat))
+write.table(countMat2save, file = paste0(outPath, "/counts.tab"), sep = "\t", quote = FALSE, row.names = FALSE, col.names = TRUE)
+
+# Get CPMs
+cpmMat <- apply(countMat, 2, function(x) x/sum(x)*1e6)
+
+# Write cpm table
+cpmMat2save <- data.frame(GeneID = row.names(cpmMat), round(cpmMat))
+write.table(cpmMat2save, file = paste0(outPath, "/cpm.tab"), sep = "\t", quote = FALSE, row.names = FALSE, col.names = TRUE)
+```
+
+
+## Explore data
+
+We visualize library variabilty using boxplots.
+
+```{r fig.height = 6, fig.width = 6, fig.align = "center"}
+# Plot
+# pdf(paste0(outPath, "/plots.pdf"))
+
+# Count boxplot
+par(omi = c(1, 0, 0, 0), mfrow = c(1, 1))
+boxplot(log10(countMat+1), las = 3, cex = 0.5, 
+        col = ifelse(grepl("Arc", colnames(countMat)), 
+                     rgb(1, 0, 0, 0.5, 1), rgb(0, 0, 1, 0.5, 1)), 
+        ylab = "log10(# Counts)", main = "Counts")
+
+# CPM boxplot
+par(omi = c(1, 0, 0, 0), mfrow = c(1, 1))
+boxplot(log10(cpmMat+1), las = 3, cex = 0.5, 
+        col = ifelse(grepl("Arc", colnames(countMat)), 
+                     rgb(1, 0, 0, 0.5, 1), rgb(0, 0, 1, 0.5, 1)),
+        ylab = "log10(# CPMs)", main = "CPM")
+```
+
+Now, we explore between libraries variability. We show three examples.
+
+```{r fig.height = 6, fig.width = 6, fig.align = "center"}
+# Scatter plot genes
+col <- rgb(0.1, 0.1, 0.1, 0.25)
+plot(log10(cpmMat[, c(1, 2)]+1), col = rgb(0.1, 0.1, 0.1, 0.3), pch = 20, main = "Scatter plot log-log")
+grid()
+abline(a = 0, b = 1)
+
+plot(log10(cpmMat[, c(1, 4)]+1), col = rgb(0.1, 0.1, 0.1, 0.3), pch = 20, main = "Scatter plot log-log")
+grid()
+abline(a = 0, b = 1)
+
+plot(log10(cpmMat[, c(1, ncol(cpmMat))]+1), col = rgb(0.1, 0.1, 0.1, 0.3), pch = 20, main = "Scatter plot log-log")
+grid()
+abline(a = 0, b = 1)
+```
+
+Finally, we use Principal Component Analysis (PCA) to:
+. Show quality of data, "correct" clustering between samples
+. Identify potential latent variables
+
+```{r  fig.height = 6, fig.width = 6, fig.align = "center"}
+# Filter out genes with 0 counts
+cpmMatFiltered <- cpmMat[rowSums(cpmMat >= 4) >= 12,]
+
+# PCA bith species
+pcaCpmMat <- prcomp(t(cpmMatFiltered), scale. = TRUE)
+
+# Plot variabity per PC
+barplot(pcaCpmMat$sdev**2, border = FALSE, cex.names = 0.8, las = 3,
+        names.arg = paste0(colnames(pcaCpmMat$rotation), " - ", 
+                           round(pcaCpmMat$sdev**2/sum(pcaCpmMat$sdev**2)*100, 1), "%"), 
+        ylab = "Variances")
+grid()
+
+# PCA plot all samples plot
+fviz_pca_ind(pcaCpmMat, habillage = sub("\\_P[0-9]+", "", colnames(cpmMatFiltered)), addEllipses = TRUE,
+             title = "", repel = TRUE)
+
+# PCA per species
+lycMat <- cpmMatFiltered[, grepl("S._lyc", colnames(cpmMatFiltered))]
+pcaLyc <- prcomp(t(lycMat), scale. = TRUE)
+arcMat <- cpmMatFiltered[, grepl("S._arc", colnames(cpmMatFiltered))]
+pcaArc <- prcomp(t(arcMat), scale. = TRUE)
+
+# PCA plot per species
+fviz_pca_ind(pcaLyc, habillage = sub("\\_P[0-9]+", "", colnames(lycMat)), addEllipses = TRUE)
+fviz_pca_ind(pcaArc, habillage = sub("\\_P[0-9]+", "", colnames(arcMat)), addEllipses = TRUE)
+```
+
+### Session information
+```{r}
+sessionInfo()
+```
+
+
+
+

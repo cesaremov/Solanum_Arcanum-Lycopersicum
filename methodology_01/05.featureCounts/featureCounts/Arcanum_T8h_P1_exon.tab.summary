@@ -1,0 +1,13 @@
+Status	../04.hisat2/hisat2/Arcanum_T8h_P1.bam
+Assigned	10060026
+Unassigned_Unmapped	3235960
+Unassigned_MappingQuality	0
+Unassigned_Chimera	0
+Unassigned_FragmentLength	0
+Unassigned_Duplicate	0
+Unassigned_MultiMapping	0
+Unassigned_Secondary	0
+Unassigned_Nonjunction	0
+Unassigned_NoFeatures	1315953
+Unassigned_Overlapping_Length	967141
+Unassigned_Ambiguity	674321

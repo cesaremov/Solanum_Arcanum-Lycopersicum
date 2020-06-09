@@ -1,0 +1,12 @@
+PASS	Basic Statistics	Slyc_T8h_P3_1.fastq.gz
+PASS	Per base sequence quality	Slyc_T8h_P3_1.fastq.gz
+PASS	Per tile sequence quality	Slyc_T8h_P3_1.fastq.gz
+PASS	Per sequence quality scores	Slyc_T8h_P3_1.fastq.gz
+FAIL	Per base sequence content	Slyc_T8h_P3_1.fastq.gz
+WARN	Per sequence GC content	Slyc_T8h_P3_1.fastq.gz
+PASS	Per base N content	Slyc_T8h_P3_1.fastq.gz
+PASS	Sequence Length Distribution	Slyc_T8h_P3_1.fastq.gz
+FAIL	Sequence Duplication Levels	Slyc_T8h_P3_1.fastq.gz
+WARN	Overrepresented sequences	Slyc_T8h_P3_1.fastq.gz
+PASS	Adapter Content	Slyc_T8h_P3_1.fastq.gz
+FAIL	Kmer Content	Slyc_T8h_P3_1.fastq.gz

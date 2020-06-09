@@ -1,0 +1,2 @@
+assembly,n_seqs,smallest,largest,n_bases,mean_len,n_under_200,n_over_1k,n_over_10k,n_with_orf,mean_orf_percent,n90,n70,n50,n30,n10,gc,bases_n,proportion_n,score,optimal_score,cutoff,weighted
+/home/CINVESTAV/hpc-cesare-ovando/Work/Slycopersicum/05.Trinity_Trinotate/02.kcombine/kcombine/Trinity.fasta,4077,501,5060,2792120,684.8467,0,387,0,4058,96.05744,522,571,643,781,1161,0.38355,0,0.0,NA,NA,NA,NA

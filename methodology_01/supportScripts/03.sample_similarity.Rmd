@@ -1,0 +1,105 @@
+---
+title: "06.edgeR"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+# Correation anaylis.
+
+Show correlation analysis between samples.
+
+```{r, message=FALSE,  echo=FALSE}
+library(Rsubread)
+library(edgeR)
+library(locfit)
+library(statmod)
+library(AnnotationFuncs)
+library(org.Mm.eg.db)
+library(sva)
+library(corrplot)
+library(boot)
+# library(GGally)
+library(gplots)
+# library(PerformanceAnalytics)
+
+setwd("~/LangebioWork/Zoltan_splicing/")
+rm(list = ls())
+gc()
+
+# Paths
+inPath = "hisat2/"
+outPath = "06.sample_similarity"
+
+dir.create(outPath, showWarnings = FALSE)
+
+# Load counts
+load("featureCounts/counts.RData")
+```
+
+We calculated pearson correlation between samples to determine worst sample(s), and confidence intervals bootstraping samples.
+
+```{r pressure, echo = FALSE}
+# Define table to work with
+print("Get tab to work with")
+tab = counts$counts
+
+# Filter out low counts
+tab = tab[rowSums(cpm(tab) >= 4) >= 4,]
+
+# Get most variable (iqr) exons
+iqr = apply(tab, 1, IQR)
+boxplot(iqr, log = "y")
+tab = tab[iqr >= 100,]
+
+# Correlation between samples
+corMat = cor(tab)
+
+# Correlation function used by bootstrap
+matcorFun = function(x, i){
+  x1 = x[i,] 
+  corMat = cor(x1)
+  corMat[lower.tri(corMat)] = 0
+  return(corMat)
+}
+
+# Bootstrap correlation
+print("Bootstraping")
+corBoot = boot(tab, matcorFun, R = 1e1, parallel = "multicore", ncpus = 4)
+boxplot(corBoot$t, las = 3, outline = FALSE, col = "grey", ylab = "Correlation")
+grid()
+
+# Plot corMat
+col = colorRampPalette(c("blue", "white", "red"))(20)
+heatmap.2(x = corMat, col = col, symm = TRUE, trace = "none")
+```
+
+Given data don't show clustering between groups, we try to look if batch effects and correct them.
+
+```{r, echo = FALSE}
+# Set null and alternative models
+group = sub("\\.[0-9]$", "", colnames(tab))
+mod1 = model.matrix(~group)
+mod0 = cbind(mod1[,1])
+
+# svaseq
+svseq = svaseq(tab, mod1,, mod0, n.sv = 1)$sv
+
+# 
+plot(svseq,pch=19,col="blue")
+```
+
+
+
+
+
+
+
+
+
+
+

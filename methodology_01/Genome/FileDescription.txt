@@ -1,0 +1,11 @@
+Release Notes
+------------
+FileDescription.txt: This file
+ReleaseNotes.txt: Release history up till build 3.0.
+
+Corresponding annotation on SL3.0 is ITAG3.0, which is available at (ftp://ftp.solgenomics.net/tomato_genome/annotation/ITAG3.0_release/)
+
+Sequence data
+-------------
+S_lycopersicum_chromosomes.3.0.fa: Multi fasta files with the v3.0 tomato chromosomes (1 to 12 and chr 0) along with the tar gzipped versions (.tar.gz).
+

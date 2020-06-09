@@ -1,0 +1,1 @@
+../../../01.Lyc_Genome_UnMap_Assembly/00.Trinity_Trinotate/02.kallisto/kallisto.sh

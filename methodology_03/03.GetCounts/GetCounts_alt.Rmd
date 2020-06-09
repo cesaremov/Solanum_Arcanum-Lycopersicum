@@ -1,0 +1,226 @@
+---
+title: "GetCounts"
+author: "Cesaré Ovando-Vázquez"
+date: '`r format(Sys.Date(), "%d/%B/%Y")`'
+output:
+  html_document:
+    theme: cerulean
+    highlight: haddock
+editor_options: 
+  chunk_output_type: inline
+---
+
+# Setup
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(reshape2)
+library(factoextra)
+library(RColorBrewer)
+# library(scatterplot3d)
+
+rm(list = ls())
+gc()
+
+# Paths
+inPath <- "../01.01.kallisto/"
+outPath <- "GetCounts"
+
+# Make paths
+dir.create(outPath, showWarnings = FALSE)
+
+# Patterns
+inPatt <- ".tsv$"
+# outPatt <- inPatt
+```
+
+
+# List Files
+
+Get kallisto results (.tsv files), add library information.
+
+```{r}
+# List featureCounts results
+print("List Files")
+fcFiles <- list.files(path = inPath, pattern = inPatt, full.names = TRUE, recursive = TRUE)
+
+# Concat files
+# countList <- list()
+cmd <- "cat ../01.01.kallisto/kallisto/Arcanum_T0h_P1/abundance.tsv | cut -f1"
+trxids <- system(cmd, intern = TRUE)
+countTab <- data.frame(row.names = trxids)
+# countTab <- NULL
+for (fcFile in fcFiles) {
+  
+  print(fcFile)
+  
+  # Load fcFile
+  tab <- read.table(fcFile, header = TRUE, sep = "\t", quote = "")
+  head(tab)
+  
+  # Re-name columns
+  colnames(tab) <- sub("^.+\\.bam$", "counts", colnames(tab))
+  
+  # Keep columns of interest
+  tab <- tab[, c("target_id", "est_counts")]
+  
+  # Add library name
+  # tab$lib <- basename(dirname(fcFile))
+  
+  # Add tab to list
+  # countList[[fcFile]] <- tab
+  countTab <- cbind(countTab, tab[row.names(countTab), "est_counts"])
+}
+# row.names(countTab) <- tab$target_id
+# colnames(countTab) <- basename(dirname(fcFiles))
+head(countTab)
+```
+
+Get count table
+```{r}
+# Concatenate
+# countTab <- do.call(rbind, countList)
+# countTab$counts <- countTab$est_counts
+```
+
+# Summary countTab
+
+Get total counts per library.
+```{r}
+# Total library counts
+# totalCounts <- sum(countTab$counts)/1e6
+# totalCountsLib <- aggregate(countTab$counts, by = list(countTab$lib), sum) 
+
+# Plot totalCountsLib
+par(omi = c(1, 0, 0, 0))
+# barplot(totalCountsLib$x, border = FALSE, col = "dodgerblue1", names.arg = totalCountsLib$Group.1, las = 3)
+grid()
+```
+
+# Get count matrix
+
+We get and save count matrix to be used by edgeR. Then, we CPM-normalize libraries.
+
+```{r}
+# Get counts per gene id and library
+# totalCountsTrxLib <- aggregate(counts ~ lib + target_id, data = countTab, sum) 
+
+# Get matrix
+countMat <- acast(data = countTab, formula = target_id ~ lib, fun.aggregate = sum, value.var = "counts")
+row.names(countMat) <- sub("^.*gene\\:", "", row.names(countMat))
+colnames(countMat) <- sub("Arcanum", "S._arc", colnames(countMat))
+colnames(countMat) <- sub("Slyc", "S._lyc", colnames(countMat))
+colnames(countMat) <- sub("T", "", colnames(countMat))
+head(countMat)
+
+# Write counts table
+countMat2save <- data.frame(GeneID = row.names(countMat), round(countMat))
+write.table(countMat2save, file = paste0(outPath, "/counts.tab"), sep = "\t", quote = FALSE, row.names = FALSE, col.names = TRUE)
+
+# Get CPMs
+cpmMat <- apply(countMat, 2, function(x) x/sum(x)*1e6)
+
+# Write cpm table
+cpmMat2save <- data.frame(GeneID = row.names(cpmMat), round(cpmMat))
+write.table(cpmMat2save, file = paste0(outPath, "/cpm.tab"), sep = "\t", quote = FALSE, row.names = FALSE, col.names = TRUE)
+```
+
+# Explore data
+
+Visualize library variabilty using boxplots.
+
+```{r fig.height = 6, fig.width = 6, fig.align = "center"}
+# Plot
+# pdf(paste0(outPath, "/plots.pdf"))
+
+# Count boxplot
+par(omi = c(1, 0, 0, 0), mfrow = c(1, 1))
+boxplot(log10(countMat+1), las = 3, cex = 0.5, 
+        col = ifelse(grepl("Arc", colnames(countMat)), 
+                     rgb(1, 0, 0, 0.5, 1), rgb(0, 0, 1, 0.5, 1)), 
+        main = "Counts")
+
+# CPM boxplot
+par(omi = c(1, 0, 0, 0), mfrow = c(1, 1))
+boxplot(log10(cpmMat+1), las = 3, cex = 0.5, 
+        col = ifelse(grepl("Arc", colnames(countMat)), 
+                     rgb(1, 0, 0, 0.5, 1), rgb(0, 0, 1, 0.5, 1)),
+        main = "CPM")
+```
+
+Explore between libraries variability. We show three examples.
+
+```{r fig.height = 6, fig.width = 6, fig.align = "center"}
+# Scatter plot genes
+col <- rgb(0.1, 0.1, 0.1, 0.25)
+plot(log10(cpmMat[, c(1, 2)]+1), col = rgb(0.1, 0.1, 0.1, 0.3), pch = 20, main = "Scatter plot log-log")
+grid()
+abline(a = 0, b = 1)
+
+plot(log10(cpmMat[, c(1, 4)]+1), col = rgb(0.1, 0.1, 0.1, 0.3), pch = 20, main = "Scatter plot log-log")
+grid()
+abline(a = 0, b = 1)
+
+plot(log10(cpmMat[, c(1, ncol(cpmMat))]+1), col = rgb(0.1, 0.1, 0.1, 0.3), pch = 20, main = "Scatter plot log-log")
+grid()
+abline(a = 0, b = 1)
+```
+
+Finally, we use Principal Component Analysis (PCA) to:
+. Observe quality of data, "correct" clustering between samples
+. Identify potential latent variables
+
+```{r  fig.height = 6, fig.width = 6, fig.align = "center"}
+# Filter out genes with 0 counts
+cpmMatFiltered <- cpmMat[rowSums(cpmMat >= 4) >= 12,]
+
+# PCA bith species
+pcaCpmMat <- prcomp(t(cpmMatFiltered), scale. = TRUE)
+
+# Plot variabity per PC
+barplot(pcaCpmMat$sdev**2, border = FALSE, cex.names = 0.8, las = 3,
+        names.arg = paste0(colnames(pcaCpmMat$rotation), " - ", 
+                           round(pcaCpmMat$sdev**2/sum(pcaCpmMat$sdev**2)*100, 1), "%"), 
+        ylab = "Variances")
+grid()
+
+# PCA plot all samples plot
+fviz_pca_ind(pcaCpmMat, habillage = sub("\\_P[0-9]+", "", colnames(cpmMatFiltered)), addEllipses = TRUE,
+              title = "", repel = TRUE)
+
+# PCA per species
+lycMat <- cpmMatFiltered[, grepl("S._lyc", colnames(cpmMatFiltered))]
+pcaLyc <- prcomp(t(lycMat), scale. = TRUE)
+arcMat <- cpmMatFiltered[, grepl("S._arc", colnames(cpmMatFiltered))]
+pcaArc <- prcomp(t(arcMat), scale. = TRUE)
+
+# PCA plot per species
+fviz_pca_ind(pcaLyc, habillage = sub("\\_P[0-9]+", "", colnames(lycMat)), addEllipses = TRUE)
+fviz_pca_ind(pcaArc, habillage = sub("\\_P[0-9]+", "", colnames(arcMat)), addEllipses = TRUE)
+
+#
+# labels <- unique(sub("\\_P[0-9]+", "", colnames(geneMat)))
+# cols <-  brewer.pal(length(labels), "Set1")
+# names(cols) <- labels
+
+# #
+# par(mfrow(c(1, 1)))
+# scatterplot3d(pcaGeneMat$x[, 1:3], color = cols[sub("\\_P[0-9]+", "", colnames(geneMat))], pch = 20, cex.symbols = 3, type = "h")
+# legend("bottomright", legend = labels, fill = cols, border = FALSE, bty = "n")
+# 
+# par(mfrow(c(1, 2)))
+# scatterplot3d(pcaLyc$x[, 1:3], color = cols[sub("\\_P[0-9]+", "", colnames(lycTab))], pch = 20, cex.symbols = 3, type = "h")
+# legend("bottomright", legend = labels[grepl("Lyc", labels)], fill = cols[labels[grepl("Lyc", labels)]], border = FALSE, bty = "n")
+# scatterplot3d(pcaArc$x[, 1:3], color = cols[sub("\\_P[0-9]+", "", colnames(arcTab))], pch = 20, cex.symbols = 3, type = "h")
+# legend("bottomright", legend = labels[grepl("Arc", labels)], fill = cols[labels[grepl("Arc", labels)]], border = FALSE, bty = "n")
+
+```
+
+### Session information
+```{r}
+sessionInfo()
+```
+
+
+
+

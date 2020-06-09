@@ -1,0 +1,183 @@
+---
+title: "Differential Expression Analysis"
+author: "Cesaré Ovando-Vázquez"
+date: '`r format(Sys.Date(), "%d/%B/%Y")`'
+output:
+  html_document:
+    theme: cerulean
+    highlight: haddock
+editor_options: 
+  chunk_output_type: inline
+---
+
+# Setup
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(edgeR)
+# library(goseq)
+library(gplots)
+library(RColorBrewer)
+
+rm(list = ls())
+gc()
+
+# Paths
+inPath <- "../03.GetCounts/"
+outPath <- "edgeR"
+
+# Make paths
+dir.create(outPath, showWarnings = FALSE)
+```
+
+# Get counts matrix
+
+first, we get the counts matrix (edgeR requirement)
+
+```{r}
+# Get counts table
+countsTab <- read.table("../03.GetCounts/GetCounts/counts.tab", sep = "\t", header = TRUE, row.names = 1, quote = "")
+dim(countsTab)
+
+# Filtering
+countsTab <- countsTab[rowSums(cpm(countsTab) >= 4) >= 9,]
+
+# Groups
+speciesGroup <- factor(sub("\\_[0-9].+$", "", colnames(countsTab)))
+timeGroup <- factor(sub("(.+)_(.+)_(.+)_(.+)", "\\3", colnames(countsTab), perl = TRUE), levels = c("0h", "8h", "24h"))
+plantGroup <- factor(sub("^.+\\_", "", colnames(countsTab)))
+Group <- factor(paste0(speciesGroup, "_", timeGroup))
+```
+
+
+# EdgeR
+
+With the count matrix we use EdgeR as follows:
+1. We create a Digital Gene Expression List object (DGEList). 
+2. Then calculate the normalization factors. 
+3. Set the experimental design. 
+4. Estimate diperssion given the design. 
+5. Fit to the model (Negative Binomial distribution).
+
+```{r fig.height = 6, fig.width = 6, fig.align = "center"}
+# Create DGE object
+dge <- DGEList(counts = countsTab, group = Group)
+
+# Calculate normalization factors
+dge <- calcNormFactors(dge)
+
+# Get experimental design
+design <- model.matrix(~ 0 + Group )
+colnames(design) <- levels(Group)
+
+# Calculate disperssion
+print("Extimating disperssion")
+dge <- estimateDisp(dge, design)
+
+# Plot  dispersion estimates
+plotBCV(dge)
+
+# Fit
+print("Fitting")
+fit <- glmQLFit(dge, design)
+```
+
+
+# Contrasts
+
+We define the contrasts of interest. For each one, we get the differential expressed table and plot MA-plot and a heatmap showing top N DE genes across contrasts.
+
+
+```{r fig.height = 6, fig.width = 6, fig.align = "center"}
+# Set colors
+colUp <- rgb(1, 0, 0, 0.35, 1)
+colDown <- rgb(0, 0, 1, 0.35, 1)   
+colNC <- rgb(0.1, 0.1, 0.1, 0.2, 1)
+
+# TopN DE
+topN <- 50
+
+# Set fdr threshold
+fdr <- 0.1
+
+# Contrast(s)
+myContrasts <- makeContrasts(
+  # "Slyc-24_8_0" = (SS._lyc_24h - SS._lyc_8h) - (SS._lyc_8h - SS._lyc_0h),
+  "S._lyc-8_vs_0" = S._lyc_8h - S._lyc_0h,
+  "S._lyc-24_vs_8" = S._lyc_24h - S._lyc_8h,
+  # "Slyc-24_vs_0" = ((SS._lyc_24h - SS._lyc_0h)),
+  # "Arcanum-24_8_0" = (Arcanum.T24h - Arcanum.T8h) - (Arcanum.T8h - Arcanum.T0h),
+  "S._arc-8_vs_0" = S._arc_8h - S._arc_0h,
+  "S._arc-24_vs_8" = S._arc_24h - S._arc_8h,
+  # "Arcanum-24_vs_0" = ((Arcanum.T24h - Arcanum.T0h)),
+  # "Arcanum-8_vs_baseline" = Arcanum.T8h - (Arcanum.T24h + Arcanum.T0h)/2,
+  # "Slyc_vs_Arcanum-0" = (SS._lyc_0h - Arcanum.T0h),
+  # "Slyc_vs_Arcanum-8" = (SS._lyc_8h - Arcanum.T8h),
+  # "Slyc_vs_Arcanum-24" = (SS._lyc_24h - Arcanum.T24h),
+  "ArcLyc-8_vs_0" = (S._arc_8h - S._arc_0h) - (S._lyc_8h - S._lyc_0h),
+  "ArcLyc-24_vs_8" = (S._arc_24h - S._arc_8h) - (S._lyc_24h - S._lyc_8h),
+  levels = design)
+
+# Save plots
+# pdf(paste0(outPath, "/plots.pdf"))
+
+# DE test
+contrasts <- colnames(myContrasts)
+for (contrast in contrasts) {
+  
+  print(contrast)
+  
+  # QLF test
+  qlf <- glmQLFTest(fit, contrast = myContrasts[, contrast])
+  
+  # Get Differential Expression results
+  deTab <- topTags(qlf, n = Inf)$table
+  
+  # Get cpm table
+  cpmTab <- cpm(countsTab)
+  
+  # Top DE cpm tab
+  topDECpmTab <- cpmTab[row.names(deTab[seq(topN),]), rowSums(design[, myContrasts[, contrast] != 0])==1]
+  
+  # PlotMD
+  # deTab <- deTab[order(deTab$FDR, decreasing = TRUE),]
+  par(omi = c(0, 0, 0, 0))
+  plot(deTab$logCPM, deTab$logFC, pch = 20, 
+       cex = ifelse(deTab$FDR <= fdr, 1, 0.5), 
+       col = ifelse(deTab$FDR <= fdr,  ifelse(deTab$logFC > 0, colUp, colDown), colNC),
+       main = paste0(contrast, "\nGenes = ", nrow(deTab),
+                     "\nfdr = ", fdr, 
+                     ", DE_up = ", nrow(deTab[deTab$FDR <= fdr & deTab$logFC >= 0,]), 
+                     ", DE_down = ", nrow(deTab[deTab$FDR <= fdr & deTab$logFC < 0,])),
+       xlab = "logCPM", ylab = "logFC", ylim = c(-15, 15))
+  legend("bottomright", legend = c("DE_up", "Not DE", "DE_down"), pch = 20, 
+         col = c(colUp, colNC, colDown), bty = 1)
+  grid()
+  abline(h = 0, lty = 2)
+  
+  # Heatmap cpm
+  par(omi = c(1, 0, 0, 1))
+  heatcols <- rev(brewer.pal(9, "YlOrBr"))
+  heatmap.2(log(topDECpmTab+1), trace = "n", RowSideColors = ifelse(deTab[row.names(topDECpmTab), "logFC"] > 0, "firebrick1", "deepskyblue1"),
+            col = heatcols, main = paste0(contrast, "\n Top ", topN))
+  
+  # Write differential expression table
+  deFile <- paste0(outPath, "/", contrast, ".tab")
+  write.table(x = deTab, file = deFile, sep = "\t", col.names = TRUE, row.names = TRUE, quote = FALSE)
+  
+}
+# dev.off()
+
+
+```
+
+
+
+```{r}
+sessionInfo()
+```
+
+
+
+
+

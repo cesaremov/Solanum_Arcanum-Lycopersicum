@@ -1,0 +1,284 @@
+---
+title: "Differential Expression"
+author: "Cesaré Ovando-Vázquez"
+date: "13/3/2018"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Setup
+
+```{r, message=FALSE}
+library(sleuth)
+library(edgeR)
+library(rtracklayer)
+library(gplots)
+library(RColorBrewer)
+
+rm(list = ls())
+gc()
+
+# Paths
+inPath <- "../03.kallisto/"
+outPath <- "sleuth"
+
+# Make paths
+dir.create(outPath, showWarnings = FALSE)
+```
+
+# Sleuth transcript differential expression
+
+We use Sleuth to find ifferential expressed transcripts between conditions.
+
+
+## List directories
+
+First, we list directories were Kallisto results are.
+```{r}
+kal_patt <- "tsv"
+
+# Kasllisto dirs
+kal_dirs <- unique(dirname(list.files(path = inPath, pattern = kal_patt, full.names = TRUE, recursive = TRUE)))
+kal_dirs
+```
+
+
+Now, we define a metadata table to be used by Sleuth
+```{r}
+# Metadata table to Sleuth
+s2c <- data.frame(sample = basename(kal_dirs), condition = gsub("^.+/|_R[12]", "", kal_dirs), path = kal_dirs,
+                  stringsAsFactors = FALSE)
+```
+
+
+Building Sleuth object
+```{r}
+# Sleuth object
+so <- sleuth_prep(s2c, extra_bootstrap_summary = TRUE)
+```
+
+
+Fit the full model
+```{r}
+# Fitting the model
+so <- sleuth_fit(so, ~ condition, 'full')
+```
+
+Fit the reduce model
+```{r}
+# Fit the reduced model
+so <- sleuth_fit(so, ~1, 'reduced')
+```
+
+Perform the test
+```{r}
+# Performing the test
+so <- sleuth_lrt(so, 'reduced', 'full')
+```
+
+Get Sleuth results
+```{r}
+# Sleuth results
+sleuthDeTab <- sleuth_results(so, 'reduced:full', 'lrt', show_all = FALSE)
+
+# Add GeneID info
+sleuthDeTab$GeneID <- sub("-.+", "", sleuthDeTab$target_id)
+
+# Perform FDR correction
+sleuthDeTab$FDR <- p.adjust(sleuthDeTab$pval)
+sleuthDeTab <- sleuthDeTab[order(sleuthDeTab$FDR, decreasing = FALSE),]
+
+# Get topN
+topN <- 10
+sleuth_significant <- dplyr::filter(sleuthDeTab, qval <= 0.01)
+head(sleuth_significant, topN)
+```
+
+Plot top differential transcriptss results
+```{r}
+# Plot topN de transcripts
+topN <- 10
+for (i in seq(topN)) {
+  p <- plot_bootstrap(so, sleuthDeTab$target_id[i], units = "est_counts", color_by = "condition")
+  print(p)
+}
+```
+
+
+
+# EdgeR
+
+
+## Counts table and groups
+
+We use EdgeR R package to perform Differential Exon Usage (DEU) . EdgeR use a count matrix (integer numbers only, counts) and the sample group names. EdgeR could use other potential variablity sources as batch effects, time, etc.
+
+We get the countMat, filter genes with no counts and the set of group names.
+
+```{r}
+# Get counts table
+countMat <- round(read.table(list.files(inPathCounts, patt = "countMat_exon.tab", recursive = TRUE, full.names = TRUE), 
+                             sep = "\t", header = TRUE, quote = ""))
+print(paste0("Counts matrix dimensions = ", paste(dim(countMat), collapse = " - ")))
+
+# Filtering
+countMat <- round(countMat[rowSums(cpm(countMat) >= 1) >= 2,])
+print(paste0("Counts matrix dimensions = ", paste(dim(countMat), collapse = " - ")))
+
+# Groups
+groups <- factor(sub("\\_R.+$", "", colnames(countMat)))
+```
+
+
+## EdgeR
+
+Now we have a countMat ready to be used by EdgeR. 
+
+We create a Digital Gene Expression List object (DGEList). 
+Then calculate the normalization factors. 
+Set the experimental design. 
+Estimate diperssion given the design. 
+Fit to the model (Negative Binomial distribution).
+
+
+```{r}
+# Create DGE object
+dge <- DGEList(counts = countMat, group = groups, 
+               genes = data.frame(GeneID = sub("-.+", "", row.names(countMat)),
+                                  Start = sub("^.+-", "", row.names(countMat)),
+                                  stringsAsFactors = FALSE))
+
+# Calculate normalization factors
+dge <- calcNormFactors(dge)
+
+# Get experimental design
+design <- model.matrix(~ 0 + groups )
+colnames(design) <- levels(groups)
+
+# Calculate disperssion
+print("Extimating disperssion")
+dge <- estimateDisp(dge, design, robust = TRUE)
+
+# Plot  dispersion estimates
+plotBCV(dge)
+
+# Fit
+print("Fitting")
+fit <- glmQLFit(dge, design)
+```
+
+
+## Contrasts
+
+We are interested to compare Mutant to Parental RNAseq libraries, so we have only one contrast (comparisson): *MA_1_153 vs SG200*.
+We set this contrast and perform the glmQLFTest. Then we show the DE results.
+
+We are interested to see Alternative Splicing (AS) regulation. We test exon differential expression usage between conditions of interest.
+
+
+```{r}
+# Contrast(s)
+myContrasts <- makeContrasts("MA_1_153_vs_SG200" = MA_1_153 - SG200, levels = design)
+
+# TopN DE
+topN <- 50
+
+# Set fdr threshold
+fdr <- 0.0001
+
+# Get Genes with alternative spliced transcirpts
+# gff <- import.gff3("../Genome/GCF_000328475.2_Umaydis521_2.0_genomic.gff")
+# gff$ParentID <- sub("^.+mrna\\.", "", gff$orig_transcript_id)
+# gff <- gff[gff$type== "mRNA"]
+
+# parentIDList <- split(gff$ParentID, f = unlist(gff$Parent))
+# parentIDList <- parentIDList[sapply(parentIDList, length) > 1]
+# parentIDList <- lapply(parentIDList, function(x) unique(gsub("T.+$", "", x)))
+# print(table(sapply(parentIDList, length)))
+# asGenes <- unlist(parentIDList)
+
+# DE test
+contrasts <- colnames(myContrasts)
+for (contrast in contrasts) {
+  
+  print(contrast)
+  
+  # QLF
+  qlf <- glmQLFTest(fit, contrast = myContrasts[, contrast])
+  
+  # Get Differential Expression results
+  deTab <- topTags(qlf, n = Inf)$table
+    
+  # Get cpm table
+  cpmTab <- cpm(countMat)
+  
+  # Top DE cpm tab
+  topDECpmTab <- cpmTab[row.names(deTab[seq(topN),]), rowSums(design[, myContrasts[, contrast] != 0])==1]
+  
+  # PlotMD
+  par(omi = c(0, 0, 0, 0))
+  plot(deTab$logCPM, deTab$logFC, pch = 20, 
+       cex = ifelse(deTab$FDR <= fdr, 1, 0.5), 
+       col = ifelse(deTab$FDR <= fdr,  ifelse(deTab$logFC > 0, rgb(1, 0, 0, 0.35, 1), rgb(0, 0, 1, 0.35, 1)),  
+                    rgb(0.1, 0.1, 0.1, 0.2, 1)),
+       main = paste0(contrast, "\nGenesExons = ", nrow(deTab),
+                     "\nfdr = ", fdr, ", DE_up = ", nrow(deTab[deTab$FDR <= fdr & deTab$logFC >= 0,]), ", DE_down = ", nrow(deTab[deTab$FDR <= fdr & deTab$logFC < 0,])),
+       xlab = "logCPM", ylab = "logFC")
+  # points(deTab[asGenes, c("logCPM", "logFC")], pch = 19, cex = 3, col = rgb(0.25, 0.25, 0.25 , 0.5))
+  legend("bottomright", legend = c("DE_up", "Not DE", "DE_down"), pch = 20, col = c(rgb(1, 0, 0, 0.35, 1), rgb(0.1, 0.1, 0.1, 0.5, 1), rgb(0, 0, 1, 0.35, 1)), bty = "n")
+  grid()
+  abline(h = 0, lty = 2)
+  
+  # # Heatmap cpm
+  # par(omi = c(1, 0, 0, 1))
+  # heatcols <- rev(brewer.pal(9, "YlOrBr"))
+  # heatmap.2(log(topDECpmTab+1), trace = "n", RowSideColors = ifelse(deTab[row.names(topDECpmTab), "logFC"] > 0, "firebrick1", "deepskyblue1"),
+  #           col = heatcols, main = paste0(contrast, "\n Top ", topN))
+
+  # # Write differential expression table
+  # deFile <- paste0(outPath, "/", contrast, ".tab")
+  # write.table(x = deTab, file = deFile, sep = "\t", col.names = TRUE, row.names = TRUE, quote = FALSE)
+  # write.table(x = deTab, file = sub(".tab", ".csv", deFile), sep = ",", col.names = TRUE, row.names = TRUE, quote = FALSE)
+  
+  
+  # Detect alternative splicing, by testing differential exon usage
+   sp <- diffSpliceDGE(fit, geneid = "GeneID", exonid = "Start")
+  
+   # Spliced genes, Sime's methods
+   deuTab <- topSpliceDGE(sp, test = "Simes", n = Inf)
+  
+   # Plot diffential spliced exons
+   topN <- 10
+   par(mfrow = c(1, 1))
+   plotSpliceDGE(sp, geneid = deuTab[1, "GeneID"], genecol = "GeneID")
+   grid()
+   abline(h = c(0, mean(as.numeric(paste0(deTab[deTab$GeneID %in% deuTab[1, "GeneID"], "logFC"])))))
+   # plotSpliceDGE(sp, geneid = deuTab[2, "GeneID"], genecol = "GeneID")
+   
+   
+   
+   sleuthSplit <- split(sleuthDeTab, f = sleuthDeTab$GeneID)
+   sleuthSplit <- sleuthSplit[sapply(sleuthSplit, nrow) > 1]
+   sleuthSplit <- sleuthSplit[order(sapply(sleuthSplit, nrow), decreasing = TRUE)]
+      
+    
+  (deTab[(deTab$GeneID %in% deuTab$GeneID) & (deTab$GeneID %in% names(sleuthSplit)),])
+  (deuTab[deuTab$GeneID %in% deuTab$GeneID,])
+  (sleuthDeTab[(sleuthDeTab$GeneID %in% deuTab$GeneID) & (sleuthDeTab$GeneID %in% names(sleuthSplit)),])
+  
+}
+
+
+```
+
+
+```{r}
+sessionInfo()
+```
+
+

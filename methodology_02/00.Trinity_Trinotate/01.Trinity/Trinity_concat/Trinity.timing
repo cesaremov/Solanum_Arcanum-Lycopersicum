@@ -1,0 +1,21 @@
+Statistics:
+===========
+Trinity Version:      Trinity-v2.6.6
+Compiler:             GCC
+Trinity Parameters:   --no_salmon --seqType fq --max_memory 100G --CPU 64 --min_contig_length 500 --left ../00.concatUnMap/concatUnMap/pairs1.fastq.gz --right ../00.concatUnMap/concatUnMap/pairs2.fastq.gz --output Trinity_concatUnMap
+Paired mode
+ Input data
+  Left.fasta    1894 MByte
+  Right.fasta   1894 MByte
+  Number of unique KMERs: 467735919
+  Number of reads:        20515768 Output data
+  Trinity.fasta 120 MByte
+
+Runtime
+=======
+Start:       Wed Aug 29 15:30:29 CDT 2018
+End:         Wed Aug 29 22:29:00 CDT 2018
+Trinity   25111 seconds
+  Inchworm (phase 1 - read clustering)  3665 seconds
+  Chrysalis (phase 1 - read clustering) 12158 seconds
+  Rest (phase 2 - parallel assembly)       9288 seconds

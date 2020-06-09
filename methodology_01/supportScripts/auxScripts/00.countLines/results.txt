@@ -1,0 +1,14 @@
+../Raw_rename/Arcanum_T0h_P1_1.fastq.gz	29089917
+../Raw_rename/Arcanum_T0h_P1_2.fastq.gz	29089917
+../Raw_rename/Arcanum_T0h_P2_1.fastq.gz	26266491
+../Raw_rename/Arcanum_T0h_P2_2.fastq.gz	26266491
+../Raw_rename/Arcanum_T0h_P3_1.fastq.gz	21384211
+../Raw_rename/Arcanum_T0h_P3_2.fastq.gz	21384211
+../Raw_rename/Arcanum_T24h_P1_1.fastq.gz	22182442
+../Raw_rename/Arcanum_T24h_P1_2.fastq.gz	22182442
+../Raw_rename/Arcanum_T24h_P2_1.fastq.gz	18319645
+../Raw_rename/Arcanum_T24h_P2_2.fastq.gz	18319645
+../Raw_rename/Arcanum_T24h_P3_1.fastq.gz	17475044
+../Raw_rename/Arcanum_T24h_P3_2.fastq.gz	17475044
+../Raw_rename/Arcanum_T8h_P1_1.fastq.gz	15972044
+../Raw_rename/Arcanum_T8h_P1_2.fastq.gz	15972044

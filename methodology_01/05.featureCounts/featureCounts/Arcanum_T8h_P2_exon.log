@@ -1,0 +1,63 @@
+
+        ==========     _____ _    _ ____  _____  ______          _____  
+        =====         / ____| |  | |  _ \|  __ \|  ____|   /\   |  __ \ 
+          =====      | (___ | |  | | |_) | |__) | |__     /  \  | |  | |
+            ====      \___ \| |  | |  _ <|  _  /|  __|   / /\ \ | |  | |
+              ====    ____) | |__| | |_) | | \ \| |____ / ____ \| |__| |
+        ==========   |_____/ \____/|____/|_|  \_\______/_/    \_\_____/
+	  v1.6.2
+
+//========================== featureCounts setting ===========================\\
+||                                                                            ||
+||             Input files : 1 BAM file                                       ||
+||                           P Arcanum_T8h_P2.bam                             ||
+||                                                                            ||
+||             Output file : Arcanum_T8h_P2_exon.tab                          ||
+||                 Summary : Arcanum_T8h_P2_exon.tab.summary                  ||
+||              Annotation : exon.gtf (GTF)                                   ||
+||       Junction Counting : <output_file>.jcounts                            ||
+||      Dir for temp files : featureCounts                                    ||
+||                                                                            ||
+||                 Threads : 32                                               ||
+||                   Level : meta-feature level                               ||
+||              Paired-end : yes                                              ||
+||      Multimapping reads : counted (fractional)                             ||
+|| Multi-overlapping reads : not counted                                      ||
+||   Min overlapping bases : 1                                                ||
+||   Min overlapping frac. : 75.0% to reads                                   ||
+||                                                                            ||
+||          Chimeric reads : counted                                          ||
+||        Both ends mapped : not required                                     ||
+||                                                                            ||
+\\===================== http://subread.sourceforge.net/ ======================//
+
+//================================= Running ==================================\\
+||                                                                            ||
+|| Load annotation file exon.gtf ...                                          ||
+||    Features : 176550                                                       ||
+||    Meta-features : 35768                                                   ||
+||    Chromosomes/contigs : 13                                                ||
+||                                                                            ||
+|| Process BAM file Arcanum_T8h_P2.bam...                                     ||
+||    Paired-end reads are included.                                          ||
+||    Assign fragments (read pairs) to features...                            ||
+||                                                                            ||
+||    WARNING: reads from the same pair were found not adjacent to each       ||
+||             other in the input (due to read sorting by location or         ||
+||             reporting of multi-mapping read pairs).                        ||
+||                                                                            ||
+||    Pairing up the read pairs.                                              ||
+||                                                                            ||
+||    Total fragments : 23143169                                              ||
+||    Successfully assigned fragments : 14894201 (64.4%)                      ||
+||    Running time : 1.39 minutes                                             ||
+||                                                                            ||
+||               Found 97959 junctions in all the input files.                ||
+||                                                                            ||
+||                         Read assignment finished.                          ||
+||                                                                            ||
+|| Summary of counting results can be found in file "featureCounts/Arcanum_T  ||
+|| 8h_P2_exon.tab.summary"                                                    ||
+||                                                                            ||
+\\===================== http://subread.sourceforge.net/ ======================//
+

@@ -1,0 +1,137 @@
+---
+title: "Untitled"
+author: "Cesaré Ovando-Vázquez"
+date: "15/8/2018"
+output: html_document
+---
+
+# Setup
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+# library(goseq)
+library(rtracklayer)
+library(GenomicFeatures)
+library(reshape2)
+library(Biostrings)
+library(GO.db)
+library(gplots)
+library(RColorBrewer)
+
+rm(list = ls())
+gc()
+
+# Paths
+# inPath <- "../08.edger/"
+outPath <- "GetSeqs"
+
+dir.create(outPath)
+```
+
+
+We extract mRNA sequences from genome (fasta) using gtf annotation.
+
+Our objetive is to get mRNA.
+
+We get mRNA transcript with unique identifier, then we export these granges and use **bedtools** to get sequences.
+
+
+## Get genomic regions
+
+We import annotation, GTF file.
+```{r}
+# Get gtf
+# gtf <- import("../11.StringTie_merge/StringTie_merge/all.gtf")
+gff <- import("../Genome/ITAG3.2_gene_models.gff")
+# genes <- gff[gff$type == "gene"]
+trx <- gff[gff$type == "mRNA"]
+# exons <- gff[gff$type == "exon"]
+```
+
+We set these lists to a list to process 
+```{r}
+# Set lists to list
+grPerList <- list(trx = trx)
+```
+
+Export granges as gff 
+```{r}
+# Export granges
+for (reg in names(grPerList)) {
+  
+  # Get granges 
+  grs <- grPerList[[reg]]
+  
+  # Set type
+  grs$type <- grs$ID
+  
+  # Export  
+  export(object = grs, paste0(outPath, "/", reg, ".gff"))
+}
+```
+
+
+
+## Get sequence from genome fasta
+
+We use system **bedtools** to get sequences
+```{r, warning=FALSE}
+# Use bedtools to get sequences
+for (reg in names(grPerList)) {
+  
+  # Run bedtools
+  system(paste0("bedtools getfasta -s -name -fi ../Genome/genome.fasta -bed GetSeqs/", reg, 
+                ".gff -fo GetSeqs/", reg, ".fa"))
+}
+```
+
+
+
+## Import sequences and get 
+
+Import sequences and save as fasta file.
+```{r}
+# Read sequences
+for (reg in names(grPerList)) {
+  
+  # Read exon sequences
+  regSeq <- readDNAStringSet(paste0("GetSeqs/", reg, ".fa"))
+  
+  # Split exons by transcript, if reg == exons
+  if (reg == "exons") {
+    
+    # Split
+    exonsSeqList <- split(regSeq, f = sub("-start.+$", "", names(regSeq)))
+    
+    # Concat exons seqs 
+    mRNASeqList <- lapply(exonsSeqList, function(seq) {
+      if ((grepl("neg", names(seq)))[1]) {
+        mrnaSeq <- paste(rev(as.character(seq)), collapse = "")
+      } else {
+        mrnaSeq <- paste((as.character(seq)), collapse = "")
+      }
+      return(mrnaSeq)
+    })
+    
+    regSeq <- DNAStringSet(x = unlist(mRNASeqList), use.names = TRUE)
+  }
+  
+  # Get insight about sequences
+  w <- width(regSeq)
+  w <- ifelse(w > 15e3, 15e3, w)
+  
+  # Histogram
+  hist(w, breaks = 64, main = paste0(reg, "\nMean = ", mean(w)))
+  abline(v = mean(w))
+  grid()
+  
+  # Ecdf
+  plot(ecdf(w), main = paste0(reg, "\nMedian = ", median(w)))
+  abline(v = median(w), h = 0.5)
+  grid()
+  
+  # Write XStringSet
+  writeXStringSet(regSeq, paste0(outPath, "/", reg, "_Seqs.fa"))
+}
+```
+

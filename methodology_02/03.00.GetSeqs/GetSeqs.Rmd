@@ -1,0 +1,174 @@
+---
+title: "Get Sequences"
+author: "Cesaré Ovando-Vázquez"
+date: '`r format(Sys.Date(), "%d/%B/%Y")`'
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+# Setup
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+# library(goseq)
+library(rtracklayer)
+library(GenomicFeatures)
+library(reshape2)
+library(Biostrings)
+library(GO.db)
+library(gplots)
+library(RColorBrewer)
+
+rm(list = ls())
+gc()
+
+# Paths
+# inPath <- "../08.edger/"
+outPath <- "GetSeqs"
+
+dir.create(outPath)
+```
+
+
+We extract pre-mRNA and mRNA sequences from genome fasta using StringTie gtf results. 
+
+Our objetive is to get pre-mRNA and mRNA sequences. mRNA to generate the transcriptome reference to **kallisto** and pre-mRNA to be used in further physics (folding energy, entropy, stability, etc.) calculations.
+
+We get exons regions per transcript with unique identifier, then we export these granges and use **bedtools** to get sequences.
+
+
+## Get genomic regions
+
+We import StringTie results annotation, GTF file.
+```{r}
+# Get gtf
+gff <- import("../Genome/grs.gff")
+genes <- gff[gff$type == "gene"]
+trx <- gff[gff$type == "mRNA"]
+exons <- gff[gff$type == "exon"]
+```
+
+
+Get Gene to transcript map. Mandatory to annotate transcript with Trinotate
+
+```{r}
+# Get Gene to Transcript map (two columns with no header)
+gene_trans_mapTab <- data.frame(Gene = sub("gene:", "", unlist(trx$Parent)), Transcript = sub("mRNA:", "", trx$ID), stringsAsFactors = FALSE)
+
+write.table(x = gene_trans_mapTab, file = paste0(outPath, "/gene_trans_map"), row.names = FALSE, col.names = FALSE, quote = FALSE, sep = "\t")
+```
+
+
+Get genes from StrongTie to reference genes mapping
+
+```{r}
+# Mapping between gene's IDs
+mbo <- mergeByOverlaps(subject = genes, query = trx)
+
+# Get map
+StringTie2Gene <- sapply(split(mbo$Name, f = mbo$Name.1), function(x) paste(x, collapse = "|"))
+
+# Get table
+mapTab <- data.frame(StrinTie = names(StringTie2Gene), gene_name = StringTie2Gene, stringsAsFactors = FALSE)
+
+write.table(x = mapTab, file = paste0(outPath, "/StringTie2Gene_map.tab"), sep = "\t", col.names = TRUE, quote = FALSE)
+```
+
+
+
+We set these lists to a list to process 
+```{r}
+# Set lists to list
+grPerList <- list(pre_mrna = trx, mrna = exons)
+```
+
+Export granges as gff 
+```{r}
+# Export granges
+for (reg in names(grPerList)) {
+  
+  # Get granges 
+  grs <- grPerList[[reg]]
+  
+  # Set type
+  grs$type <- paste0(grs$Parent ,"_", grs$ID)
+ grs$type <- paste0(grs$type, "-", ifelse(strand(grs) == "+", "pos", "neg"))
+  
+  # Export  
+  export(object = grs, paste0(outPath, "/", reg, ".gff"))
+}
+```
+
+
+
+## Get sequence from genome fasta
+
+Once exported , we use **bedtools** to ge sequences on the system
+```{r}
+# Use bedtools to get sequences
+for (reg in names(grPerList)) {
+  
+  # Run bedtools
+  system(paste0("bedtools getfasta -s -name -fi ../Genome/genome.fasta -bed GetSeqs/", reg, 
+                ".gff -fo GetSeqs/", reg, ".fa"))
+}
+```
+
+
+
+## Import sequences and get 
+
+We import sequences and save it. If exons, we concat to get mRNA. Transcripts are pre-mRNA.
+```{r}
+# Read sequences
+for (reg in names(grPerList)) {
+  
+  # Read exon sequences
+  regSeq <- readDNAStringSet(paste0("GetSeqs/", reg, ".fa"))
+  
+  # Split exons by transcript, if reg == exons
+  if (reg == "mrna") {
+    
+    # Split
+    exonsSeqList <- split(regSeq, f = gsub("mRNA:|\\_.+", "", names(regSeq)))
+    
+    # Concat exons seqs 
+    mRNASeqList <- lapply(exonsSeqList, function(seq) {
+      if ((grepl("neg", names(seq)))[1]) {
+        mrnaSeq <- paste(rev(as.character(seq)), collapse = "")
+      } else {
+        mrnaSeq <- paste((as.character(seq)), collapse = "")
+      }
+      return(mrnaSeq)
+    })
+        names(mRNASeqList) <- sub("-.+$", "", names(mRNASeqList))
+   
+    regSeq <- DNAStringSet(x = unlist(mRNASeqList), use.names = TRUE)
+  }
+  
+  # Get insight about sequences
+  w <- width(regSeq)
+  w <- ifelse(w > 15e3, 15e3, w)
+  
+  # Histogram
+  hist(w, breaks = 64, main = paste0(reg, "\nMean = ", mean(w)))
+  abline(v = mean(w))
+  grid()
+  
+  # Ecdf
+  plot(ecdf(w), main = paste0(reg, "\nMedian = ", median(w)))
+  abline(v = median(w), h = 0.5)
+  grid()
+  
+  # Write XStringSet
+  print(paste0("Writing ", length(regSeq), " sequences"))
+  writeXStringSet(regSeq, paste0("GetSeqs/", reg, "_Seqs.fa"))
+}
+# # RNAfold
+# trxIds <- names(trxSeq)
+# for (trxId in trxIds) {
+#   system(paste("RNAfold", as.character(trxSeq[names(trxSeq) == trxId])))
+# }
+```
+

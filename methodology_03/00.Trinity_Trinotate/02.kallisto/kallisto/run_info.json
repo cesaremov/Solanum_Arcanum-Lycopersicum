@@ -1,0 +1,13 @@
+{
+	"n_targets": 176548,
+	"n_bootstraps": 1000,
+	"n_processed": 394537182,
+	"n_pseudoaligned": 15725037,
+	"n_unique": 3184257,
+	"p_pseudoaligned": 4.0,
+	"p_unique": 0.8,
+	"kallisto_version": "0.44.0",
+	"index_version": 10,
+	"start_time": "Tue Sep 11 16:58:08 2018",
+	"call": "kallisto quant -i kallisto/trinity -b 1000 -t 32 --pseudobam -o kallisto ../00.concat/concatRaw/pairs_1.fastq.gz ../00.concat/concatRaw/pairs_2.fastq.gz"
+}

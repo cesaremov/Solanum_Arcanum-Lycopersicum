@@ -1,0 +1,128 @@
+---
+title: "mapping_stats"
+author: "Cesaré Ovando-Vázquez"
+date: '`r format(Sys.Date(), "%d/%B/%Y")`'
+output:
+  html_document:
+    theme: cerulean
+    highlight: haddock
+editor_options: 
+  chunk_output_type: inline
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Setup
+
+```{r}
+library(gplots)
+library(ggplot2)
+library(reshape2)
+
+rm(list = ls())
+gc()
+
+# Paths
+inPath <- dir("../", pattern = "kallisto$", full.names = TRUE)
+outPath <- "mapping_stats"
+dir.create(outPath, showWarnings = FALSE)
+
+# Patterns
+inPatt <- ".json"
+```
+
+## Get kallisto log files
+
+Get log files from kallisto processing
+```{r}
+# Get Log.txt bowtieShortStack files to process
+jsonFiles <- list.files(pattern = inPatt, path = inPath, recursive = TRUE, full.names = TRUE)
+
+libList <- list()
+mumList <- list()
+for (jsonFile in jsonFiles) {
+  
+  print(jsonFile)
+  
+  # Scan alnFile
+  jsonScan <- scan(file = jsonFile, what = "character", sep = "\t")
+  
+  # Get map stats
+  mapStats <- jsonScan[grepl("n_processed|n_pseudoaligned", jsonScan)]
+  mapStats <- gsub(":|,", "", mapStats)
+  mapStatsTab0 <- do.call(rbind, strsplit(mapStats, split = "\\s+"))
+  mapStatsTab <- data.frame(lib = basename(dirname(jsonFile)), type = mapStatsTab0[, 1], counts = as.numeric(mapStatsTab0[, 2]))
+  
+  # Get map/unmap table
+  readsMap <- mapStatsTab[mapStatsTab$type == "n_pseudoaligned", "counts"]
+  total <-  mapStatsTab[mapStatsTab$type == "n_processed", "counts"]
+  mumTab <- data.frame(lib =  basename(dirname(jsonFile)), 
+                       Map = readsMap, MapProp = readsMap/total*100,
+                       UnMap = total-readsMap, UnMapProp = 100-readsMap/total*100)
+  
+  # Set tables to lists
+  libList[[jsonFile]] <- mapStatsTab  
+  mumList[[jsonFile]] <- mumTab
+}
+```
+
+
+
+```{r}
+# Get table
+allTab <- do.call(rbind, libList)
+mapUnmaptab <- do.call(rbind, mumList)
+mapUnmaptab <- melt(mapUnmaptab)
+colnames(mapUnmaptab) <- c("lib", "type", "counts")
+
+# Fix and set libs names
+mapUnmaptab$lib <- sub("Arcanum", "S._arc", mapUnmaptab$lib)
+mapUnmaptab$lib <- sub("Slyc", "S._lyc", mapUnmaptab$lib)
+mapUnmaptab$lib <- sub("T", "", mapUnmaptab$lib)
+
+
+# Set types
+mapUnmaptab$type <- sub("Map", "Mapped", mapUnmaptab$type)
+mapUnmaptab$type <- sub("Unmap", "Unmapped", mapUnmaptab$type)
+mapUnmaptab$type <- factor(mapUnmaptab$type)
+
+head(mapUnmaptab)
+# mapUnmaptab
+# levels(mapUnmaptab$type) <- rev(levels(mapUnmaptab$type) )
+```
+
+
+
+## Plot
+
+```{r}
+# Order levels
+mapUnmaptab$type <- factor(mapUnmaptab$type, levels = rev(unique(mapUnmaptab$type)))
+
+# Plot
+gmum <- ggplot(mapUnmaptab[!grepl("Prop", mapUnmaptab$type),], aes(x = lib, y = counts, fill = type)) +
+  geom_bar(stat = "identity") + theme(axis.text.x = element_text(angle = 90, hjust = 1)) + 
+  scale_fill_manual(values =  c("gray", "dodgerblue1"), name = "", labels = c("Mapped", "Unmapped")) +
+  ylab("fragments") +
+  xlab("") + 
+  labs(fill = "")
+print(gmum)
+
+gmumProp <- ggplot(mapUnmaptab[grepl("Prop", mapUnmaptab$type),], aes(x = lib, y = counts, fill = type)) +
+  geom_bar(stat = "identity") + theme(axis.text.x = element_text(angle = 90, hjust = 1)) + 
+  scale_fill_manual(values =  c("gray", "dodgerblue1"), name = "", labels = c("Unmapped", "Mapped")) +
+  xlab("") + 
+  ylab("% fragments")
+print(gmumProp)
+
+# dev.off()
+
+# Save table
+write.table(x = allTab, file = paste(outPath, "/mapping_stats.tab", sep = ""),
+            sep = "\t", quote = FALSE)
+write.table(x = mapUnmaptab, file = paste(outPath, "/mapUnmap.tab", sep = ""),
+            sep = "\t", quote = FALSE)
+```
+

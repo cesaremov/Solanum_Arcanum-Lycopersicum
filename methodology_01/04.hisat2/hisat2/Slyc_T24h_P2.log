@@ -1,0 +1,12 @@
+HISAT2 summary stats:
+	Total pairs: 22870482
+		Aligned concordantly or discordantly 0 time: 2032803 (8.89%)
+		Aligned concordantly 1 time: 19912958 (87.07%)
+		Aligned concordantly >1 times: 307463 (1.34%)
+		Aligned discordantly 1 time: 617258 (2.70%)
+	Total unpaired reads: 4065606
+		Aligned 0 time: 3063294 (75.35%)
+		Aligned 1 time: 969554 (23.85%)
+		Aligned >1 times: 32758 (0.81%)
+	Overall alignment rate: 93.30%
+[bam_sort_core] merging from 0 files and 32 in-memory blocks...

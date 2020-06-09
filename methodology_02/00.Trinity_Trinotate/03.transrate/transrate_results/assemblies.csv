@@ -1,0 +1,2 @@
+assembly,n_seqs,smallest,largest,n_bases,mean_len,n_under_200,n_over_1k,n_over_10k,n_with_orf,mean_orf_percent,n90,n70,n50,n30,n10,gc,bases_n,proportion_n,score,optimal_score,cutoff,weighted
+/home/CINVESTAV/hpc-cesare-ovando/Work/Slycopersicum/01.Lyc_Genome_UnMap_Assembly/00.Trinity_Trinotate/01.Trinity/Trinity_concat/Trinity.fasta,123697,501,6929,111888938,904.54043,0,34713,0,54131,50.49147,567,728,934,1240,1908,0.39644,0,0.0,NA,NA,NA,NA

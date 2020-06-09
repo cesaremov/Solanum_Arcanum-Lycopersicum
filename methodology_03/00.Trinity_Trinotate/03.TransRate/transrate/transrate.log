@@ -1,0 +1,29 @@
+[ INFO] 2018-11-15 14:51:01 : Loading assembly: /home/CINVESTAV/hpc-cesare-ovando/Work/Slycopersicum/02.Assembly_De_Novo/00.Trinity_Trinotate/01.Trinity/Trinity/Trinity.fasta
+[ INFO] 2018-11-15 14:51:53 : Analysing assembly: /home/CINVESTAV/hpc-cesare-ovando/Work/Slycopersicum/02.Assembly_De_Novo/00.Trinity_Trinotate/01.Trinity/Trinity/Trinity.fasta
+[ INFO] 2018-11-15 14:51:53 : Results will be saved in /home/CINVESTAV/hpc-cesare-ovando/Work/Slycopersicum/02.Assembly_De_Novo/00.Trinity_Trinotate/03.TransRate/transrate_results/Trinity
+[ INFO] 2018-11-15 14:51:54 : Calculating contig metrics...
+[ INFO] 2018-11-15 14:52:30 : Contig metrics:
+[ INFO] 2018-11-15 14:52:30 : -----------------------------------
+[ INFO] 2018-11-15 14:52:30 : n seqs                       176548
+[ INFO] 2018-11-15 14:52:30 : smallest                        501
+[ INFO] 2018-11-15 14:52:30 : largest                       12110
+[ INFO] 2018-11-15 14:52:30 : n bases                   286104977
+[ INFO] 2018-11-15 14:52:30 : mean len                    1620.55
+[ INFO] 2018-11-15 14:52:30 : n under 200                       0
+[ INFO] 2018-11-15 14:52:30 : n over 1k                    116122
+[ INFO] 2018-11-15 14:52:30 : n over 10k                        9
+[ INFO] 2018-11-15 14:52:30 : n with orf                    94495
+[ INFO] 2018-11-15 14:52:30 : mean orf percent              42.46
+[ INFO] 2018-11-15 14:52:30 : n90                             829
+[ INFO] 2018-11-15 14:52:30 : n70                            1438
+[ INFO] 2018-11-15 14:52:30 : n50                            2031
+[ INFO] 2018-11-15 14:52:30 : n30                            2754
+[ INFO] 2018-11-15 14:52:30 : n10                            3995
+[ INFO] 2018-11-15 14:52:30 : gc                             0.39
+[ INFO] 2018-11-15 14:52:30 : bases n                           0
+[ INFO] 2018-11-15 14:52:30 : proportion n                    0.0
+[ INFO] 2018-11-15 14:52:30 : Contig metrics done in 36 seconds
+[ INFO] 2018-11-15 14:52:30 : No reads provided, skipping read diagnostics
+[ INFO] 2018-11-15 14:52:30 : No reference provided, skipping comparative diagnostics
+[ INFO] 2018-11-15 14:52:30 : Writing contig metrics for each contig to /home/CINVESTAV/hpc-cesare-ovando/Work/Slycopersicum/02.Assembly_De_Novo/00.Trinity_Trinotate/03.TransRate/transrate_results/Trinity/contigs.csv
+[ INFO] 2018-11-15 14:52:39 : Writing analysis results to assemblies.csv

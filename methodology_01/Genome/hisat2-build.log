@@ -1,0 +1,292 @@
+Settings:
+  Output files: "Genome/Slycopersicum.*.ht2"
+  Line rate: 6 (line is 64 bytes)
+  Lines per side: 1 (side is 64 bytes)
+  Offset rate: 4 (one in 16)
+  FTable chars: 10
+  Strings: unpacked
+  Local offset rate: 3 (one in 8)
+  Local fTable chars: 6
+  Local sequence length: 57344
+  Local sequence overlap between two consecutive indexes: 1024
+  Endianness: little
+  Actual local endianness: little
+  Sanity checking: disabled
+  Assertions: disabled
+  Random seed: 0
+  Sizeofs: void*:8, int:4, long:8, size_t:8
+Input files DNA, FASTA:
+  Genome/S_lycopersicum_chromosomes.3.00.fa
+Reading reference sizes
+  Time reading reference sizes: 00:00:15
+Calculating joined length
+Writing header
+Reserving space for joined string
+Joining reference sequences
+  Time to join reference sequences: 00:00:08
+  Time to read SNPs and splice sites: 00:00:00
+Using parameters --bmax 139942026 --dcv 1024
+  Doing ahead-of-time memory usage test
+  Passed!  Constructing with these parameters: --bmax 139942026 --dcv 1024
+Constructing suffix-array element generator
+Building DifferenceCoverSample
+  Building sPrime
+  Building sPrimeOrder
+  V-Sorting samples
+  V-Sorting samples time: 00:00:18
+  Allocating rank array
+  Ranking v-sort output
+  Ranking v-sort output time: 00:00:03
+  Invoking Larsson-Sadakane on ranks
+  Invoking Larsson-Sadakane on ranks time: 00:00:08
+  Sanity-checking and returning
+Building samples
+Reserving space for 12 sample suffixes
+Generating random suffixes
+QSorting 12 sample offsets, eliminating duplicates
+QSorting sample offsets, eliminating duplicates time: 00:00:00
+Multikey QSorting 12 samples
+  (Using difference cover)
+  Multikey QSorting samples time: 00:00:00
+Calculating bucket sizes
+Splitting and merging
+  Splitting and merging time: 00:00:00
+Split 1, merged 5; iterating...
+Splitting and merging
+  Splitting and merging time: 00:00:00
+Split 1, merged 1; iterating...
+Splitting and merging
+  Splitting and merging time: 00:00:00
+Avg bucket size: 9.32947e+07 (target: 139942025)
+Converting suffix-array elements to index image
+Allocating ftab, absorbFtab
+Entering GFM loop
+Getting block 1 of 8
+  Reserving size (139942026) for bucket 1
+  Calculating Z arrays for bucket 1
+  Entering block accumulator loop for bucket 1:
+  bucket 1: 10%
+  bucket 1: 20%
+  bucket 1: 30%
+  bucket 1: 40%
+  bucket 1: 50%
+  bucket 1: 60%
+  bucket 1: 70%
+  bucket 1: 80%
+  bucket 1: 90%
+  bucket 1: 100%
+  Sorting block of length 39431535 for bucket 1
+  (Using difference cover)
+  Sorting block time: 00:00:16
+Returning block of 39431536 for bucket 1
+Getting block 2 of 8
+  Reserving size (139942026) for bucket 2
+  Calculating Z arrays for bucket 2
+  Entering block accumulator loop for bucket 2:
+  bucket 2: 10%
+  bucket 2: 20%
+  bucket 2: 30%
+  bucket 2: 40%
+  bucket 2: 50%
+  bucket 2: 60%
+  bucket 2: 70%
+  bucket 2: 80%
+  bucket 2: 90%
+  bucket 2: 100%
+  Sorting block of length 134401731 for bucket 2
+  (Using difference cover)
+  Sorting block time: 00:01:04
+Returning block of 134401732 for bucket 2
+Getting block 3 of 8
+  Reserving size (139942026) for bucket 3
+  Calculating Z arrays for bucket 3
+  Entering block accumulator loop for bucket 3:
+  bucket 3: 10%
+  bucket 3: 20%
+  bucket 3: 30%
+  bucket 3: 40%
+  bucket 3: 50%
+  bucket 3: 60%
+  bucket 3: 70%
+  bucket 3: 80%
+  bucket 3: 90%
+  bucket 3: 100%
+  Sorting block of length 101109997 for bucket 3
+  (Using difference cover)
+  Sorting block time: 00:00:46
+Returning block of 101109998 for bucket 3
+Getting block 4 of 8
+  Reserving size (139942026) for bucket 4
+  Calculating Z arrays for bucket 4
+  Entering block accumulator loop for bucket 4:
+  bucket 4: 10%
+  bucket 4: 20%
+  bucket 4: 30%
+  bucket 4: 40%
+  bucket 4: 50%
+  bucket 4: 60%
+  bucket 4: 70%
+  bucket 4: 80%
+  bucket 4: 90%
+  bucket 4: 100%
+  Sorting block of length 125515408 for bucket 4
+  (Using difference cover)
+  Sorting block time: 00:00:59
+Returning block of 125515409 for bucket 4
+Getting block 5 of 8
+  Reserving size (139942026) for bucket 5
+  Calculating Z arrays for bucket 5
+  Entering block accumulator loop for bucket 5:
+  bucket 5: 10%
+  bucket 5: 20%
+  bucket 5: 30%
+  bucket 5: 40%
+  bucket 5: 50%
+  bucket 5: 60%
+  bucket 5: 70%
+  bucket 5: 80%
+  bucket 5: 90%
+  bucket 5: 100%
+  Sorting block of length 80771888 for bucket 5
+  (Using difference cover)
+  Sorting block time: 00:00:37
+Returning block of 80771889 for bucket 5
+Getting block 6 of 8
+  Reserving size (139942026) for bucket 6
+  Calculating Z arrays for bucket 6
+  Entering block accumulator loop for bucket 6:
+  bucket 6: 10%
+  bucket 6: 20%
+  bucket 6: 30%
+  bucket 6: 40%
+  bucket 6: 50%
+  bucket 6: 60%
+  bucket 6: 70%
+  bucket 6: 80%
+  bucket 6: 90%
+  bucket 6: 100%
+  Sorting block of length 110482276 for bucket 6
+  (Using difference cover)
+  Sorting block time: 00:00:50
+Returning block of 110482277 for bucket 6
+Getting block 7 of 8
+  Reserving size (139942026) for bucket 7
+  Calculating Z arrays for bucket 7
+  Entering block accumulator loop for bucket 7:
+  bucket 7: 10%
+  bucket 7: 20%
+  bucket 7: 30%
+  bucket 7: 40%
+  bucket 7: 50%
+  bucket 7: 60%
+  bucket 7: 70%
+  bucket 7: 80%
+  bucket 7: 90%
+  bucket 7: 100%
+  Sorting block of length 87475941 for bucket 7
+  (Using difference cover)
+  Sorting block time: 00:00:39
+Returning block of 87475942 for bucket 7
+Getting block 8 of 8
+  Reserving size (139942026) for bucket 8
+  Calculating Z arrays for bucket 8
+  Entering block accumulator loop for bucket 8:
+  bucket 8: 10%
+  bucket 8: 20%
+  bucket 8: 30%
+  bucket 8: 40%
+  bucket 8: 50%
+  bucket 8: 60%
+  bucket 8: 70%
+  bucket 8: 80%
+  bucket 8: 90%
+  bucket 8: 100%
+  Sorting block of length 67168687 for bucket 8
+  (Using difference cover)
+  Sorting block time: 00:00:29
+Returning block of 67168688 for bucket 8
+Exited GFM loop
+fchr[A]: 0
+fchr[C]: 245858945
+fchr[G]: 373106630
+fchr[T]: 500478117
+fchr[$]: 746357470
+Exiting GFM::buildToDisk()
+Returning from initFromVector
+Wrote 253253963 bytes to primary GFM file: Genome/Slycopersicum.1.ht2
+Wrote 186589372 bytes to secondary GFM file: Genome/Slycopersicum.2.ht2
+Re-opening _in1 and _in2 as input streams
+Returning from GFM constructor
+Returning from initFromVector
+Wrote 333414889 bytes to primary GFM file: Genome/Slycopersicum.5.ht2
+Wrote 189998650 bytes to secondary GFM file: Genome/Slycopersicum.6.ht2
+Re-opening _in5 and _in5 as input streams
+Returning from HierEbwt constructor
+Headers:
+    len: 746357470
+    gbwtLen: 746357471
+    nodes: 746357471
+    sz: 186589368
+    gbwtSz: 186589368
+    lineRate: 6
+    offRate: 4
+    offMask: 0xfffffff0
+    ftabChars: 10
+    eftabLen: 0
+    eftabSz: 0
+    ftabLen: 1048577
+    ftabSz: 4194308
+    offsLen: 46647342
+    offsSz: 186589368
+    lineSz: 64
+    sideSz: 64
+    sideGbwtSz: 48
+    sideGbwtLen: 192
+    numSides: 3887279
+    numLines: 3887279
+    gbwtTotLen: 248785856
+    gbwtTotSz: 248785856
+    reverse: 0
+    linearFM: Yes
+Total time for call to driver() for forward index: 00:13:40
+Index version	2.1.0
+Flags	1
+2.0-compatible	0
+SA-Sample	1 in 16
+FTab-Chars	10
+Sequence-1	SL3.0ch00	20852292
+Sequence-2	SL3.0ch01 	98455869
+Sequence-3	SL3.0ch02 	55977580
+Sequence-4	SL3.0ch03 	72290146
+Sequence-5	SL3.0ch04 	66557038
+Sequence-6	SL3.0ch05 	66723567
+Sequence-7	SL3.0ch06 	49794276
+Sequence-8	SL3.0ch07 	68175699
+Sequence-9	SL3.0ch08 	65987440
+Sequence-10	SL3.0ch09 	72906345
+Sequence-11	SL3.0ch10 	65633393
+Sequence-12	SL3.0ch11 	56597135
+Sequence-13	SL3.0ch12 	68126176
+Num. SNPs: 0
+Num. Splice Sites: 0
+Num. Exons: 0
+
++---------------------------------------------------------------------+
+|                        JOB INFORMATION                              |
++---------------------------------------------------------------------+
+|
+|  Date      : Tue Feb 20 18:40:44 CST 2018
+|  Hostname  : node36
+|  Job ID    : 148974.mazorka
+|  Username  : covando
+|  Group     : covando
+|  Job Name  : hisat2-build
+|  Session   : 21537
+|  Limits    : mem=20gb,neednodes=1:ppn=1,nodes=1:ppn=1,vmem=20gb,walltime=24:00:00
+|  Resources : cput=00:12:56,energy_used=0,mem=1392152kb,vmem=1692016kb,walltime=00:13:40
+|  Queue     : default
+|  Exit code : 0
+|
+[---------------------------------------------------------------------]
+
+

@@ -1,0 +1,332 @@
+---
+title: "goTest"
+author: "Cesaré Ovando-Vázquez"
+date: '`r format(Sys.Date(), "%d/%B/%Y")`'
+output:
+  html_document:
+    theme: cerulean
+    highlight: haddock
+editor_options: 
+  chunk_output_type: inline
+---
+
+## Setup
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+## Load libraries
+
+```{r, include=FALSE}
+# library(goseq)
+library(rtracklayer)
+library(reshape2)
+library(GO.db)
+library(gplots)
+library(pbapply)
+library(RColorBrewer)
+library(broom)
+library(edgeR)
+
+rm(list = ls())
+gc()
+
+# Paths
+inPath <- "../04.edgeR/"
+outPath <- "goTest"
+
+dir.create(outPath, showWarnings = FALSE)
+```
+
+# GO terms
+
+First, we load Trinotate results table. This table contains the relationship between Transcript and GO IDs.
+
+Then, we split GO terms by Transcript ID.
+
+```{r}
+# Get GO terms from protein_go info
+trinotateTab <- read.table(file = "../00.Trinity_Trinotate/04.Trinotate/Trinotate.xls",
+                           sep = "\t",
+                           header = TRUE, comment.char = "", stringsAsFactors = FALSE, quote = "")
+row.names(trinotateTab) <- trinotateTab$transcript_id
+trinotateTab$description_BLASTX_hit <- gsub("^.+Full=|;\\^.+", "", trinotateTab$sprot_Top_BLASTX_hit)
+trinotateTab$description_BLASTP_hit <- gsub("^.+Full=|;\\^.+", "", trinotateTab$sprot_Top_BLASTP_hit)
+
+# Split by trx id
+trxGOlist <- split(trinotateTab$gene_ontology_blast, f = trinotateTab$transcript_id)
+
+# Remove trx without ontology term
+trxGOlist <- trxGOlist[trinotateTab$transcript_id[trinotateTab$gene_ontology_blast != "."]]
+
+# Filter out by pID
+pid <- as.numeric(sapply(strsplit(trinotateTab$sprot_Top_BLASTX_hit, split = "\\^"), function(x) sub("\\%ID", "", x[4])))
+names(pid) <- (trinotateTab$transcript_id)
+pid <- pid[!is.na(pid)]
+minPid <- 80
+pid <- pid[pid >= minPid]
+trxGOlist <- trxGOlist[names(pid)]
+
+# Filter out by Evalue
+eval <- as.numeric(gsub(".+E:|\\^RecName.+", "", trinotateTab$sprot_Top_BLASTX_hit))
+names(eval) <- row.names(trinotateTab)
+eval <- eval[!is.na(eval)]
+minEval <- 1e-10
+eval <- eval[eval <= minEval]
+trxGOlist <- trxGOlist[names(eval)]
+
+# Unlist 
+trxGOlist <- trxGOlist[!is.na(names(trxGOlist))]
+trxGO <- unlist2(lapply(trxGOlist, function(x) sub("\\^.+", "", unlist(strsplit(x, "\\`")))))
+
+# Set trx GO table
+trxGOTab <- data.frame(TrxID = names(trxGO), GO = trxGO,  stringsAsFactors = FALSE)
+
+# Get goList, trx splited by GO
+goList <- split(trxGOTab$TrxID, f = trxGOTab$GO)
+print(length(goList))
+
+# Get elements per GO
+goLen <- sapply(goList, length)
+hist(log10(goLen), 32)
+
+# Filter goList by length
+goList <- goList[goLen > quantile(goLen, 0.85) & goLen < quantile(goLen, 0.999)]
+print(length(goList))
+goLen <- sapply(goList, length)
+hist(scale(log10(goLen)), 32)
+
+# Filter goList between +-0.5 sd
+# goLen <- goLen[goLen >= 20 & goLen <= 500]
+scaleGoLean <- scale(log10(goLen))
+goLen <- goLen[scaleGoLean >= 0]
+goList <- goList[names(goLen)]
+print(length(goList))
+range(goLen)
+```
+
+
+# Get Gene length
+
+Since we use GOSeq analysis, we must get gene length information.
+
+```{r}
+# Get gene length
+# gtf <- import("../11.StringTie_merge/StringTie_merge/all.gtf")
+# trx <- gtf[gtf$type == "transcript"]
+# trxLen <- width(trx)
+# names(trxLen) <- trx$transcript_id
+```
+
+
+# GO analysis
+
+For each contrast we calculated GO-set encirchement using logistic regression (binomial glm model). We use logFC as the statistic and transcript id within GO-set as index.
+
+```{r fig.height = 6, fig.width = 6, fig.align = "center"}
+# Get deTabs
+contFiles <- list.files(path = inPath, pattern = "tab", full.names = TRUE, recursive = TRUE)
+
+contList <- list()
+deList <- list()
+for (contFile in contFiles) {
+  
+  print(contFile)
+  
+  # Load de table
+  deTab <- read.table(contFile, sep = "\t", header = TRUE, comment.char = "", quote = "", stringsAsFactors = FALSE)
+  deTab$TrxID <- row.names(deTab)
+  deList[[sub(".tab", "", basename(contFile))]] <- deTab
+  
+  # goList
+  cl <- makeCluster(4)
+  goTestList <- pblapply(goList, function(x, deTab, trxGOTab) {
+    # for (x in goList) {
+    deTabX <- deTab
+    deTabX$statistics <- rank(sign(deTabX$logFC) * -log10(deTabX$FDR))
+    deTabX$index <- (row.names(deTab) %in% x)
+    deTabX <- deTabX[intersect(row.names(deTabX), trxGOTab$TrxID),]
+    glmTab <- broom::tidy(glm(index ~ statistics, data = deTabX, 
+                              family = binomial(link = "logit")))#,
+                              #weights = ifelse(deTabX$index,
+                                               #table(deTabX$index)["FALSE"]/table(deTabX$index)["FALSE"],
+                                               #table(deTabX$index)["FALSE"]/table(deTabX$index)["TRUE"])))
+    glmResult <- glmTab[glmTab$term == "statistics", c("estimate", "p.value")]
+    # }
+    return(glmResult)
+  }, deTab, trxGOTab, cl = cl)
+  stopCluster(cl)
+  
+  # Get GO test table
+  goTestTab <- data.frame(GO = names(goList), do.call(rbind, goTestList), stringsAsFactors = FALSE)
+  goTestTab$Term <- Term(goTestTab$GO)
+  goTestTab$Ontology <- Ontology(goTestTab$GO)
+  goTestTab$nTrx <- sapply(goList[goTestTab$GO], length)
+  goTestTab <- goTestTab[order(goTestTab$p.value, decreasing = FALSE),]
+  
+  x <- goList[[goTestTab[which.min(goTestTab$p.value), "GO"]]]
+  barcodeplot(statistics = deTab$logFC, index = row.names(deTab) %in% x)
+  
+  # Split by ontology
+  ontList <- split(goTestTab, f = goTestTab$Ontology)
+  
+  # Set to contrast list
+  contList[[sub(".tab", "", basename(contFile))]] <- ontList
+}
+```
+
+
+
+## Process GoSeq results
+
+Finally, we process results for each Ontology given DE direction and we show GO Term enrichment.
+
+```{r fig.height = 10, fig.width = 10, fig.align = "center"}
+# Set contrast ontList
+conts <- names(contList)
+ontologies <- names(ontList)
+
+# p.val correction method
+padjMethod <- "none"
+
+# TopN GO terms
+topN <- 20
+
+# Set max score
+maxScore <- 5
+
+# Results by Contrast and Ontology
+ContOntList <- list()
+goBigListTop <- list()
+for (cont in conts) {
+  
+  for (ontology in ontologies) {
+    
+    main <- paste0(cont, ", ", ontology)
+    print(main)
+    
+    # Get ontology table
+    ontTab <- contList[[cont]][[ontology]]
+    
+    # Correct p.values?
+    ontTab$fdr <- p.adjust(ontTab$p.value, padjMethod)
+    
+    # Get scores (-log10(fdr))
+    ontTab$score <- -log10(ontTab$fdr) * sign(ontTab$estimate)
+    
+    # Keep topN up/down scores
+    ontTab <- ontTab[order(ontTab$score),]
+    ontTabTopN <- rbind(head(ontTab, topN), tail(ontTab, topN))
+    ContOntList[[cont]][[ontology]] <- data.frame(cont = cont, ontTabTopN, stringsAsFactors = FALSE)
+    
+    # Set max abs score
+    ontTabTopN$score <- ifelse(abs(ontTabTopN$score) >= maxScore, 
+                               ifelse(ontTabTopN$score > 0, maxScore, -maxScore), 
+                               ontTabTopN$score)
+    
+    # Barplot, GO enrichment
+    par(omi = c(0, 4, 0, 0), mfrow = c(1, 1))
+    col <- c(pos = rgb(1, 0, 0, 0.75), neg = rgb(0, 0, 1, 0.75))
+    barplot(ontTabTopN$score, border = FALSE, names.arg = ontTabTopN$Term, horiz = TRUE, las = 1,
+            col = ifelse(ontTabTopN$score > 0, col["pos"], col["neg"]),
+            xlab = ("Enrichment score\n-log10(p.value)*sign(estimate)"),
+            main = paste0(main))
+    grid()
+    abline(v = c(-1, 1), lty = 2)
+    legend("right", legend = c("DE_up", "DE_down"), fill = c(col), bty = "n", box.col = "white")
+  }
+  
+  # Get deTab to add functional annotation
+  deTab <- deList[[cont]]
+  deTab <- deTab[, c("TrxID", "logFC", "PValue", "FDR")]
+  deTab <- cbind(deTab, trinotateTab[row.names(deTab), c("description_BLASTX_hit", "description_BLASTP_hit", "Pfam", "eggnog", "Kegg")])
+  
+  # Add enriched functions information
+  goListTop <- goList[do.call(rbind, ContOntList[[cont]])$GO]
+  for (goTop in names(goListTop)) {
+    deTab[, paste0(Ontology(goTop), "-", goTop, "_", gsub(",", "_", Term(goTop)))] <- row.names(deTab) %in% (goListTop[[goTop]])
+  }
+  
+  write.table(deTab, file = paste0(outPath, "/", cont, "_goAnalysis.tab"), sep = "\t", 
+              quote = FALSE, row.names = FALSE, col.names = TRUE)
+  write.table(deTab, file = paste0(outPath, "/", cont, "_goAnalysis.csv"), sep = ",", 
+              quote = FALSE, row.names = FALSE, col.names = TRUE)
+  
+  # Concat goListTop to goBigListTop
+  goBigListTop <- c(goBigListTop, goListTop)
+}
+```
+
+
+Get full length contrast, ontology and score table. Then split table by ontology
+
+```{r}
+# Get table to heatmap
+ContOntTab <- do.call(rbind, lapply(ContOntList, function(x) do.call(rbind, lapply(x, function(x) x[, c("Ontology", "Term", "cont", "score", "nTrx")]))))
+ContOntTab$Term <- paste0(sub("^.+GO", "GO", row.names(ContOntTab)), "-", ContOntTab$Term)
+
+# Split by ontology
+ContOntTabSplit <- split(ContOntTab, f = ContOntTab$Ontology)
+
+# ontScoreMatList
+ontScoreMatList <- lapply(ContOntTabSplit, function(x) {
+  ontScoreMat <- acast(data = x, formula = Term ~ cont, value.var = "score")
+  return(ontScoreMat)
+})
+
+# ontNtrxMatList
+ontNtrxMatList <- lapply(ContOntTabSplit, function(x) {
+  ontNtrxMat <- acast(data = x, formula = Term ~ cont, value.var = "nTrx")
+  return(ontNtrxMat)
+})
+```
+
+
+Enrichement scores in a heatmap to visualize "patterns"
+
+```{r, fig.height = 18, fig.width = 10}
+# Plot heatmap
+for (ontology in names(ontScoreMatList)) {
+  
+  print(ontology)
+  
+  # Get matrix x to work with
+  x <- ontScoreMatList[[ontology]]
+  x[is.na(x)] <- 0
+  x[(x) < -maxScore] <- -maxScore
+  x[(x) > maxScore] <- maxScore
+  
+  #
+  # dev.off()
+  par(omi = c(0.5, 0, 0, 1.5))
+  cols <- colorRampPalette(rev(brewer.pal(10, "Spectral")))(maxScore*4 + 1)
+  heatmap.2(as.matrix(x), scale = "none", col = cols, 
+            trace = "none", cexCol = 0.75,
+            keysize = 0.85,
+            # sepcolor = "gray", sepwidth = c(0.05, 0.05),
+            cellnote = ontNtrxMatList[[ontology]], notecol = rgb(0.1, 0.1, 0.1, 0.75), 
+            sepwidth = c(0.05, 0.05), colsep = seq(ncol(x)), rowsep = seq(nrow(x)), #sepcolor = rgb(0.1, 0.1, 0.1, 0.5), 
+            main = ontology)
+  # image(t(x))
+}
+```
+
+
+## Save
+
+Save objects to used them later.
+
+```{r}
+# Save objects
+save(trinotateTab, deList, goBigListTop, goList, trxGOTab, file = "goTest.Rdata") # deList, goBigListTop,
+save(ontScoreMatList, file = "02_ontMatList.Rdata")
+```
+
+```{r}
+sessionInfo()
+```
+
+
+

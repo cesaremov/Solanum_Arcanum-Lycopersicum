@@ -1,0 +1,115 @@
+---
+title: "Aspli statistics"
+author: "Cesaré Ovando-Vázquez"
+date: "November 15, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(GenomicFeatures)
+library(rtracklayer)
+library(ASpli)
+
+rm(list = ls())
+gc()
+
+# Paths
+inPath <- "../05.StringTie_merge/"
+outPath <- "AS_Stats"
+
+dir.create(outPath)
+```
+
+
+We load StringTie merge gtf result, and clean it if un-stranded transcripts
+
+```{r}
+# Load StringTie merge gtf
+allgtf <- list.files(path = inPath, full.names = TRUE, pattern = "gtf", recursive = TRUE)
+gtf <- import(allgtf)
+
+# What do we have?
+table(strand(gtf))
+
+# Clean gtf, only stranded transcripts
+gtfClean <- gtf[strand(gtf) != "*"]
+# mcols(gtfClean) <- mcols(gtfClean)[, !grepl("phase|score|re_gene|exon", colnames(mcols(gtfClean)))]
+
+# Save clen gtf
+gtfCleanFile <- paste0(outPath, "/clean.gtf")
+export(object = gtfClean, con = gtfCleanFile, format = "gtf")
+```
+
+
+We use ASplice to get AS statistics
+
+```{r}
+# Generate TxDB 
+txDB <-makeTxDbFromGFF(gtfCleanFile)
+
+# Extract genomic features
+features <- binGenome(txDB)
+```
+
+We plot the AS detected event from StringTie gtf result
+
+```{r}
+# Scan SApli log file
+logFile <- scan(file = "ASpli_binFeatures.log", what = "character", sep = "\n")
+
+# Clean
+logFile <- logFile[grepl(" \t [A-Z]", logFile, ignore.case = TRUE)]
+logFile <- gsub("\t", "", logFile)
+# logFile <- logFile[!grepl()]
+
+#
+asTab <- data.frame(type = sub(" bins =.+", "", logFile), n = as.numeric(gsub(".+= |\\(.+", "", logFile),
+           stringsAsFactors = FALSE))
+
+barplot(asTab$n, names.arg = asTab$type, border = FALSE, col = rgb(1, 0, 0, 0.75), las = 1)
+grid()
+```
+
+
+
+<!-- ## Differential usage -->
+
+<!-- Now, we use the bam files to get differential usage, from ASplice package -->
+<!-- ```{r} -->
+<!-- # Bam files -->
+<!-- bams <- list.files(path = "../04.hisat2/", pattern = "bam$", recursive = TRUE, full.names = TRUE) -->
+<!-- ``` -->
+
+<!-- Load bams into target data.frame -->
+<!-- ```{r} -->
+<!-- # -->
+<!-- targets <- data.frame(row.names = paste0("Sample", seq(length(bams))), -->
+<!--   bam = bams, -->
+<!--   f1 = gsub("_.+", "", basename(bams)), -->
+<!--   stringsAsFactors = FALSE) -->
+
+<!-- bamsAS <- loadBAM(targets) -->
+
+<!-- ``` -->
+
+
+
+<!-- ```{r} -->
+<!-- # -->
+<!-- counts <- readCounts( features, bamsAS, targets, readLength = 100, -->
+<!-- maxISize = 5000 ) -->
+
+
+
+<!-- ``` -->
+
+<!-- ```{r} -->
+<!-- # -->
+<!-- plotGenomicRegions( features,'GENE10:E002', genomeTxDb, targets ) -->
+<!-- ``` -->
+
+
+
+

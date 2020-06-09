@@ -1,0 +1,1 @@
+../../00.Lyc_Genome/00.AnnotateGenome/01.Trinotate/conf.txt
